@@ -135,7 +135,7 @@ export const sendOrderSuccessEmail = async (orderDetails) => {
 
   export const sendOrderToOwnerEmail = async (orderDetails) => {
     try {
-      const ownerEmail = process.env.USERS; // Owner's email address
+      const ownerEmail = process.env.USER; // Owner's email address
       const itemsList = orderDetails.orderItems
         .map(
           (item) => `${item.name} (x${item.quantity}): ₹${item.price.toFixed(2)}`
