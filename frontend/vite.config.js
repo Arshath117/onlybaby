@@ -7,17 +7,13 @@ export default defineConfig({
     exclude: ["razorpay"],
   },
   build: {
-    outDir: "dist", // Ensure the correct output directory
-    emptyOutDir: true, // Clean old files before building
+    outDir: "dist", 
+    emptyOutDir: true, 
   },
   server: {
-    port: 5173, // Required for local development
-    host: "0.0.0.0", // Ensures it's accessible in containerized environments
+    historyApiFallback: true, // Redirects all requests to index.html
   },
-  preview: {
-    port: 4173, // Preview mode port
-  },
-  base: "/", // Ensures correct routing for Render deployments
+  base: "/", 
 });
 
 
