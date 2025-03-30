@@ -76,7 +76,7 @@ const Nav = () => {
 const fetchUserReviews = async () => {
     setLoadingReviews(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/review/fetch/${user.email}`);
+      const response = await fetch(`https://onlybaby.onrender.com/api/review/fetch/${user.email}`);
       if (!response.ok) {
         throw new Error(`Server error: ${response.statusText}`);
       }
@@ -109,7 +109,7 @@ const fetchUserReviews = async () => {
             )
             : [];
 
-        const response = await fetch("http://localhost:5001/api/review/reviews/update", {
+        const response = await fetch("https://onlybaby.onrender.com/api/review/reviews/update", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -141,7 +141,7 @@ const fetchUserReviews = async () => {
     try {
 
       console.log(email)
-      const response = await fetch(`http://localhost:5001/api/review/reviews/${productName}/${email}`, {
+      const response = await fetch(`https://onlybaby.onrender.com/api/review/reviews/${productName}/${email}`, {
         method: 'DELETE',
       });
   
@@ -212,7 +212,7 @@ useEffect(() => {
 
         const userId = user._id;
 
-        await axios.put(`http://localhost:5001/api/auth/updateUserItems`, {
+        await axios.put(`https://onlybaby.onrender.com/api/auth/updateUserItems`, {
           userId,
           cartItems: filteredCartItems,
           likedItems: filteredLikedItems,
