@@ -11,7 +11,7 @@ export default defineConfig({
     emptyOutDir: true, 
   },
   server: {
-    historyApiFallback: true, // Redirects all requests to index.html
+    historyApiFallback: true, 
   },
   base: "/", 
 });

@@ -210,36 +210,37 @@ export const ToyStoreProvider = ({ children }) => {
     navigate("/product");
   };
 
-  const filteredProducts = products?.filter((product) => {
-    const productAge = parseAgeGroup(product.ageGroup);
-    const ageMatches =
-      !filters.ageRange ||
-      (filters.ageRange === "0-1" && productAge === "0-1") ||
-      (filters.ageRange === "1-3" && productAge === "1-3") ||
-      (filters.ageRange === "3-6" && productAge === "3-6") ||
-      (filters.ageRange === "6-11" && productAge === "6-11") ||
-      (filters.ageRange === "11-19" && productAge === "11-19");
-
-    const priceMatches =
-      !filters.priceRange ||
-      (filters.priceRange === "0-200" &&
-        product.price >= 0 &&
-        product.price <= 200) ||
-      (filters.priceRange === "200-500" &&
-        product.price > 200 &&
-        product.price <= 500) ||
-      (filters.priceRange === "500-1000" &&
-        product.price > 500 &&
-        product.price <= 1000) ||
-      (filters.priceRange === "1000-2000" &&
-        product.price > 1000 &&
-        product.price <= 2000) ||
-      (filters.priceRange === "2000-200000" &&
-        product.price > 2000 &&
-        product.price <= 200000);
-
-    return ageMatches && priceMatches;
-  });
+      const filteredProducts = products?.filter((product) => {
+        const productAge = parseAgeGroup(product.ageGroup);
+        const ageMatches =
+          !filters.ageRange ||
+          (filters.ageRange === "0-1" && productAge === "0-1") ||
+          (filters.ageRange === "1-3" && productAge === "1-3") ||
+          (filters.ageRange === "3-6" && productAge === "3-6") ||
+          (filters.ageRange === "6-11" && productAge === "6-11") ||
+          (filters.ageRange === "11-19" && productAge === "11-19");
+    
+        const priceMatches =
+          !filters.priceRange ||
+          (filters.priceRange === "0-200" &&
+            product.price >= 0 &&
+            product.price <= 200) ||
+          (filters.priceRange === "200-500" &&
+            product.price > 200 &&
+            product.price <= 500) ||
+          (filters.priceRange === "500-1000" &&
+            product.price > 500 &&
+            product.price <= 1000) ||
+          (filters.priceRange === "1000-2000" &&
+            product.price > 1000 &&
+            product.price <= 2000) ||
+          (filters.priceRange === "2000-200000" &&
+            product.price > 2000 &&
+            product.price <= 200000);
+    
+        return ageMatches && priceMatches;
+      });
+      
 
   // Cart Functionality
   const storeCartInLocalStorage = (updatedCart) => {

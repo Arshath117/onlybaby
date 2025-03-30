@@ -3,7 +3,7 @@ import { useAuthStore } from "../store/authStore";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { ToyStore } from "../context/ContextApi";
 import SingleProduct from "../product/SingleProduct";
 
@@ -12,6 +12,7 @@ const PaymentConfirmation = () => {
   const { user } = useAuthStore.getState();
   const navigate = useNavigate();
   const { orders, memberShip, shippingPrice, singleProduct, removeCart } = useContext(ToyStore);
+  const [PaymentDone, setPaymentDone] = useState(false);
 
   const { orderItems = [], shippingAddress = {}, itemsPrice } = state?.orderData || {};
   console.log(`order items : ${orderItems.map((item) => item._id)}`);
@@ -54,19 +55,28 @@ const PaymentConfirmation = () => {
           const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
           console.log("Razorpay Response:", response);
           try {
-            await axios.post(`https://onlybaby.onrender.com/api/orders/verify`, {
+           const res= await axios.post(`https://onlybaby.onrender.com/api/orders/verify`, {
               razorpayOrderId: razorpay_order_id,
               razorpayPaymentId: razorpay_payment_id,
               razorpaySignature: razorpay_signature,
             });
+            if(res.data.status === "success") {
             toast.success("Payment successful! Order placed.");
+            navigate("/");
             if(!singleProduct){
               removeCart();
             }
-            navigate("/");
+          }else{
+            setPaymentDone(false);
+            toast.error("Payment failed! Please try again.");
+          }
+            
           } catch (error) {
+            setPaymentDone(false);
             toast.error("Payment failed! Please try again.");
             console.error("Verification error:", error.response?.data || error);
+          }finally{
+            setPaymentDone(false);
           }
         },
         prefill: { name: `${user.firstName} ${user.lastName}`, email: user.email, contact: user.phone },
@@ -176,13 +186,55 @@ const PaymentConfirmation = () => {
           </div>
         </div>
         <div className="px-8 py-6 bg-gray-50">
-          <button
-            onClick={handlePayment}
-            className="w-full bg-gray-800 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center space-x-2"
-          >
-            <span>Proceed to Payment</span>
-            <span>₹{grandTotal.toFixed(2)}</span>
-          </button>
+        <div className="mt-2">
+              <button
+                type="submit"
+                disabled={PaymentDone}
+                className={`w-full flex justify-center items-center px-1 py-3 rounded-md text-white text-lg font-medium transition-colors duration-200 ${
+                  PaymentDone
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-gray-800 hover:bg-gray-700"
+                }`}
+              >
+                {PaymentDone ? (
+                  <div className="flex items-center space-x-2">
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>Processing Payment...</span>
+                  </div>
+                ) : (
+                  <button
+                  onClick={()=>{
+                    setPaymentDone(true);
+                    handlePayment();
+                  }}
+                  className="w-full bg-gray-800 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center space-x-2"
+                >
+                  <span>Proceed to Payment</span>
+                  <span>₹{grandTotal.toFixed(2)}</span>
+                </button>
+                )}
+              </button>
+            </div>
+         
         </div>
       </div>
     </div>

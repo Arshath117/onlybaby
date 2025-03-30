@@ -355,6 +355,14 @@ export const verifyPayment = async (req, res) => {
       );
     }
     console.log(orderDetails)
+        // If the user closes Razorpay without completing the payment, handle it gracefully
+        if (!orderDetails.payment.isPaid) {
+          console.log("Payment not completed. Order remains in draft state.");
+          return res.status(400).json({
+          success: false,
+          message: "Payment not completed. Please try again.",
+          });
+        }
 
     await sendOrderSuccessEmail(orderDetails);
     await sendOrderToOwnerEmail(orderDetails);

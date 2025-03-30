@@ -2,6 +2,8 @@ import { useState, useEffect, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ToyStore } from "../context/ContextApi";
 import Cards from "../cards/Cards";
+import { Mosaic } from "react-loading-indicators";
+import ProductGrid from "./ProductGrid";
 
 
 // Animation variants
@@ -35,68 +37,6 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// No Products Found Component
-const NoProductsFound = () => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    className="col-span-full flex flex-col items-center justify-center p-8 text-center"
-  >
-    <motion.div
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      transition={{ type: "spring", stiffness: 200, damping: 15 }}
-      className="w-24 h-24 mb-4 bg-purple-100 rounded-full flex items-center justify-center"
-    >
-      <svg
-        className="w-12 h-12 text-purple-500"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
-    </motion.div>
-    <h3 className="text-xl font-semibold text-gray-800 mb-2">
-      Loading
-    </h3>
-    <p className="text-gray-600">
-      Try adjusting your filters or search criteria
-    </p>
-  </motion.div>
-);
-
-// Product Grid Component
-const ProductGrid = ({ products }) => (
-  <motion.div
-    variants={staggerContainer}
-    initial="hidden"
-    animate="visible"
-    className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6"
-  >
-    <AnimatePresence>
-      {!products || products.length === 0 ? (
-        <NoProductsFound />
-      ) : (
-        products.map((item, index) => (
-          <motion.div
-            key={index}
-            variants={fadeInUp}
-            whileHover={{ y: -10, transition: { duration: 0.2 } }}
-            className="transform transition-all duration-300"
-          >
-            <Cards product={item} />
-          </motion.div>
-        ))
-      )}
-    </AnimatePresence>
-  </motion.div>
-);
 
 // Filter Button Component
 const FilterButton = ({ selected, onClick, children }) => (
@@ -116,10 +56,10 @@ const FilterButton = ({ selected, onClick, children }) => (
 
 // Main Component
 const AllProducts = () => {
-  const { filteredProducts, handleAgeRangeClick, handlePriceRangeClick } =
+  const { filteredProducts, handleAgeRangeClick, handlePriceRangeClick, loading } =
     useContext(ToyStore);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isloading, setLoading] = useState(true);
   const [selectedAgeRange, setSelectedAgeRange] = useState("");
   const [selectedPriceRange, setSelectedPriceRange] = useState("");
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
@@ -160,7 +100,7 @@ const AllProducts = () => {
     handlePriceRangeClick(value);
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (isloading) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -380,7 +320,12 @@ const AllProducts = () => {
 
         {/* Main Content */}
         <main className="flex-1 p-6 md:p-8 pt-20">
-          <motion.div
+          {loading ? (
+             <div className="flex items-center justify-center min-h-screen">
+             <Mosaic color="#6B21A8" size="medium" text="" textColor="" />
+           </div> 
+          ) : (
+            <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="max-w-7xl mx-auto"
@@ -392,8 +337,10 @@ const AllProducts = () => {
             >
               All Products
             </motion.h1>
-            <ProductGrid products={products} />
+              <ProductGrid products={products} />
           </motion.div>
+          )}
+         
         </main>
       </div>
     </div>
