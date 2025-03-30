@@ -30,7 +30,7 @@ const MembershipSidebar = ({ onClose, userId }) => {
   const handlePayNow = async () => {
     try {
       const paymentResponse = await axios.post(
-        `https://onlybaby-user.onrender.com/api/membership/initiate`, // Endpoint to initiate payment
+        `http://localhost:5001/api/membership/initiate`, // Endpoint to initiate payment
         {
           user: user._id, // Send user ID for membership
         }
@@ -66,7 +66,7 @@ const MembershipSidebar = ({ onClose, userId }) => {
             );
 
             const verifyResponse = await axios.post(
-              `https://onlybaby-user.onrender.com/api/membership/verify`, // Verify payment
+              `http://localhost:5001/api/membership/verify`, // Verify payment
               {
                 razorpayOrderId: razorpay_order_id,
                 razorpayPaymentId: razorpay_payment_id,

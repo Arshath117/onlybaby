@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.6.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",
@@ -25,7 +26,8 @@
     "mongoose": "^8.8.3",
     "nodemailer": "^6.9.16",
     "razorpay": "^2.9.5",
-    "twilio": "^5.4.0"
+    "tailwind-scrollbar": "^4.0.1",
+    "twilio": "^5.5.1"
   },
   "type": "module",
   "devDependencies": {

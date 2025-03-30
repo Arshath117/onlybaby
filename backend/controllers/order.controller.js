@@ -1,4 +1,5 @@
 import Order from "../models/orderSchema.model.js";
+import Member from "../models/membership.model.js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import dotenv from "dotenv";
@@ -11,11 +12,11 @@ dotenv.config();
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-// const whatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER; // Your Twilio WhatsApp number
-// const storeOwnerNumber = process.env.STORE_OWNER_WHATSAPP;
-// const client = twilio(accountSid, authToken);
+const whatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER; 
+const storeOwnerNumber = process.env.STORE_OWNER_WHATSAPP;
+const messageTemplate = process.env.TWILIO_MESSAGE_TEMPLATE;
+const client = twilio(accountSid, authToken);
 
-// Save or Update Draft Order
 export const saveOrUpdateDraftOrder = async (req, res) => {
   try {
     const { user, orderItems, shippingAddress, itemsPrice } = req.body;
@@ -101,11 +102,12 @@ export const saveOrUpdateDraftOrder = async (req, res) => {
   }
 };
 
-
 export const initiatePayment = async (req, res) => {
  // check if user has previous order history if yes make
   try {
     const { user, itemsPrice, orderItems, addressId } = req.body;
+    console.log(user)
+    console.log(`price: ${itemsPrice}`)
     // Validate required fields
     if (!user || !itemsPrice || !orderItems || !addressId) {
       return res.status(400).json({
@@ -114,7 +116,18 @@ export const initiatePayment = async (req, res) => {
           "Missing required fields: user, itemsPrice, orderItems, addressId",
       });
     }
+    let member = await Member.findOne({ userId : user });
+  
+    let userOrder = await Order.findOne({ user });
+    const hasPurchasedBefore = userOrder.orders.length > 0;
 
+    if (!userOrder) {
+      // Create a new order document for the user if it doesn't exist
+      userOrder = await Order.create({
+        user,
+        orders: [],
+      });
+    }
 
     // Check if orderItems is an array
     if (!Array.isArray(orderItems) || orderItems.length === 0) {
@@ -125,7 +138,13 @@ export const initiatePayment = async (req, res) => {
     }
 
     // Calculate total price
-    const totalPrice = itemsPrice;
+    const totalPrice = hasPurchasedBefore ? itemsPrice + 50 : itemsPrice;
+    let finalTotal = totalPrice;
+    console.log(finalTotal)
+    if(member && member.paymentStatus){
+     finalTotal = totalPrice - (0.1 * totalPrice)
+      console.log(`altered ${finalTotal}`)
+    }
 
     // Initialize Razorpay
     const razorpay = new Razorpay({
@@ -135,7 +154,7 @@ export const initiatePayment = async (req, res) => {
 
     // Create Razorpay order
     const options = {
-      amount: totalPrice * 100, // Amount in paise
+      amount: finalTotal * 100, // Amount in paise
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     };
@@ -148,15 +167,6 @@ export const initiatePayment = async (req, res) => {
         success: false,
         message: "Unable to create payment order. Please try again later.",
       });
-    }
-
-    // Find the user's order record
-    let userOrder = await Order.findOne({ user });
-    if (!userOrder) {
-      console.log(
-        "No existing order record found for user. Creating a new record."
-      );
-      userOrder = await Order.create({ user, orders: [] });
     }
 
     // Find the existing draft order
@@ -224,6 +234,49 @@ export const initiatePayment = async (req, res) => {
   }
 };
 
+export const sendWhatsappMessage = async (orderDetails) => {
+  try {
+
+  const order_id = orderDetails._id.toString();  
+  const customer_first_name = orderDetails.shippingAddress?.firstName || "N/A"; 
+  const customer_last_name = orderDetails.shippingAddress?.lastName || "N/A"; 
+  const address = orderDetails.shippingAddress?.streetAddress || "N/A"; 
+  const city = orderDetails.shippingAddress?.city || "N/A"; 
+  const state = orderDetails.shippingAddress?.state || "N/A"; 
+  const postal_code = orderDetails.shippingAddress?.postcode || "N/A"; 
+  const items = orderDetails.orderItems
+    .map((item) => ` ${item.quantity}x ${item.name}, Color : ${item.color} `)
+    .join(", "); 
+  const purchaser_number = orderDetails.shippingAddress?.phone || "N/A"; 
+  const total_price = orderDetails.totalPrice?.toString() || "0.00"; 
+  const paid_at = orderDetails.payment?.paidAt?.toISOString() || new Date().toISOString(); 
+
+    const response = await client.messages.create({
+      from: whatsappNumber,
+      to: storeOwnerNumber,
+      contentSid: messageTemplate,
+      contentVariables: JSON.stringify({
+        1: order_id,
+        2: customer_first_name,
+        3: customer_last_name,
+        4: address,
+        5: city,
+        6: state,
+        7: postal_code,
+        8: items,
+        9: purchaser_number,
+        10: total_price,
+        11: paid_at
+      })
+     
+    }).then(message => console.log("Message Sent! SID:", message.sid))
+    .catch(error => console.error("Error Sending Message:", error));
+  
+    
+  } catch (error) {
+    console.log(`Error caught ${error}`);
+  }
+}
 
 export const verifyPayment = async (req, res) => {
   const session = await mongoose.startSession();
@@ -232,52 +285,48 @@ export const verifyPayment = async (req, res) => {
   try {
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
 
-    // Find the user's order with the matching Razorpay order ID
+    console.log("Verifying payment:", { razorpayOrderId, razorpayPaymentId, razorpaySignature });
+
     const userOrder = await Order.findOne({
       "orders.payment.razorpayOrderId": razorpayOrderId,
     }).session(session);
 
     if (!userOrder) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    // Locate the specific order in the user's order list
     const orderIndex = userOrder.orders.findIndex(
       (order) => order.payment.razorpayOrderId === razorpayOrderId
     );
 
     if (orderIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: "Draft order not found",
-      });
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ success: false, message: "Draft order not found" });
     }
 
-    // Verify the payment signature
+
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-      .digest("base64");
+      .digest("hex");
+
+    console.log("Generated Signature:", generatedSignature);
 
     if (generatedSignature !== razorpaySignature) {
-      // Update payment status to failed if signatures do not match
       userOrder.orders[orderIndex].payment = {
         ...userOrder.orders[orderIndex].payment,
         paymentStatus: "failed",
         paymentMessage: "Invalid payment signature",
       };
-      await userOrder.save();
-
-      return res.status(400).json({
-        success: false,
-        message: "Invalid payment signature",
-      });
+      await userOrder.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: "Invalid payment signature" });
     }
 
-    // Update payment details and mark the order as paid
     userOrder.orders[orderIndex].payment = {
       razorpayOrderId,
       razorpayPaymentId,
@@ -287,40 +336,30 @@ export const verifyPayment = async (req, res) => {
       paymentStatus: "successful",
       paymentMethod: "razorpay",
     };
-
-    // Mark the order as finalized
     userOrder.orders[orderIndex].isDraft = false;
 
-    // Save the updated order
-    await userOrder.save();
+    await userOrder.save({ session });
 
     const orderDetails = userOrder.orders[orderIndex];
 
-    // Reduce stock quantities for each item in the order
     for (const item of orderDetails.orderItems) {
       const product = await Product.findById(item._id).session(session);
-
-      if (!product || product.quantity < item.quantity) {
+      if (!product) throw new Error(`Product not found: ${item._id}`);
+      if (product.quantity < item.quantity) {
         throw new Error(`Insufficient stock for product ${item.name}`);
       }
-
       await Product.findByIdAndUpdate(
         item._id,
         { $inc: { quantity: -item.quantity } },
         { new: true, session }
       );
     }
+    console.log(orderDetails)
 
-    // Save the updated user order
-    await userOrder.save({ session });
-
-    console.log("order details",orderDetails)
-
-    // Send order success email
     await sendOrderSuccessEmail(orderDetails);
     await sendOrderToOwnerEmail(orderDetails);
+    await sendWhatsappMessage(orderDetails);
 
-    // Commit the transaction
     await session.commitTransaction();
     session.endSession();
 
@@ -330,20 +369,18 @@ export const verifyPayment = async (req, res) => {
       order: orderDetails,
     });
   } catch (error) {
-    // Abort transaction in case of an error
+    console.error("Error in verifyPayment:", error.message, error.stack);
     await session.abortTransaction();
     session.endSession();
-    console.error("Error in verifyPayment:", error.message);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
-
-
 
 export const getOrderHistory = async (req, res) => {
   try {
     // Read the user ID from the query parameters for GET requests
     const { user } = req.query;
+    console.log(user);
 
     // Ensure the user is provided
     if (!user) {
@@ -363,9 +400,8 @@ export const getOrderHistory = async (req, res) => {
       });
     }
 
-    // Filter out draft orders and sort by createdAt (descending)
     const orderHistory = userOrders
-      .map((userOrder) => userOrder.orders) // Get all orders array from each userOrder
+      .map((userOrder) => userOrder.orders) 
       .flat() // Flatten the array to get all individual orders
       ?.filter((order) => !order.isDraft) // Filter out draft orders
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by creation date
@@ -385,7 +421,7 @@ export const getCurrentDraftOrder = async (req, res) => {
     if (!userOrder) {
       return res.status(404).json({
         success: false,
-        message: "No draft order found",
+        message: "No draft order found", 
       });
     }
 

@@ -62,13 +62,16 @@ export const ToyStoreProvider = ({ children }) => {
       localStorage.setItem("cartItems", JSON.stringify(cartItems));
     }
   }, [cartItems]);
+  
+  
 
   // Fetch Products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(`https://onlybaby-user.onrender.com/api/shop`);
+        const response = await axios.get(`http://localhost:5001/api/shop`);
         setProducts(response.data.products);
+        console.log(`successfully fetched in context : ${response.data.products}`)
       } catch (error) {
         setError(error.message);
         console.error("Error fetching products", error.message);
@@ -84,11 +87,15 @@ export const ToyStoreProvider = ({ children }) => {
   useEffect(() => {
     const fetchMembership = async () => {
       try {
-        const response = await axios.post(
-          `https://onlybaby-user.onrender.com/api/membership/fetch`,
-          { userId: user?._id } // Use optional chaining to safely access user._id
-        );
 
+        const response = await axios.post(
+          "http://localhost:5001/api/membership/fetch",
+          { userId: user?._id }, 
+          {
+            headers: { "Content-Type": "application/json" }, 
+          }
+        );
+        
         if (response.data.active) {
           setMemberShip(true);
         } else {
@@ -108,16 +115,17 @@ export const ToyStoreProvider = ({ children }) => {
   //fetch orders
   useEffect(() => {
     const fetchOrderHistory = async () => {
+      if (!user?._id) return; 
+  
       try {
-        if (user?._id) {
-          const response = await axios.get(
-            `https://onlybaby-user.onrender.com/api/orders/getOrderHistory`,
-            {
-              params: { user: user._id },
-            }
-          );
-          setOrders(response.data.orders);
-        }
+        setLoading(true);
+        console.log(`Fetching order history for user ID: ${user._id}`);
+  
+        const response = await axios.get(
+          `http://localhost:5001/api/orders/getOrderHistory?user=${user._id}`
+        );
+        console.log(response.data.orders)
+        setOrders(response.data.orders || []); 
       } catch (err) {
         console.error("Error fetching order history:", err);
         setError("Failed to load order history.");
@@ -125,11 +133,11 @@ export const ToyStoreProvider = ({ children }) => {
         setLoading(false);
       }
     };
-
+  
     fetchOrderHistory();
   }, [user?._id]);
+  
 
-  // Like Functionality
   const handleLikeToggle = (product) => {
     setLikedItems((prevLikedItems) => {
       if (prevLikedItems.some((item) => item._id === product._id)) {
@@ -145,10 +153,29 @@ export const ToyStoreProvider = ({ children }) => {
     toast.success(`${itemName} removed from cart`);
   };
 
-  // Sidebar Controls
-  const openSidebar = (product) => setSidebarState({ isOpen: true, product });
 
-  const closeSidebar = () => setSidebarState({ isOpen: false, product: null });
+
+  // Sidebar Controls
+  // const openSidebar = (product) => setSidebarState({ isOpen: true, product });
+
+  // const closeSidebar = () => setSidebarState({ isOpen: false, product: null });
+
+  const openSidebar = (product) => {
+    console.log("Opening sidebar with product:", product); 
+    setSidebarState((prevState) => ({
+      ...prevState,
+      product,
+      isOpen: true,
+    }));
+  };
+
+  const closeSidebar = () => {
+    setSidebarState((prevState) => ({
+      ...prevState,
+      product: null,
+      isOpen: false,
+    }));
+  };
 
   // Filters and Helper Functions
   // const parseAgeGroup = (ageGroup) => {
@@ -219,26 +246,31 @@ export const ToyStoreProvider = ({ children }) => {
     localStorage.setItem("cartItems", JSON.stringify(updatedCart));
   };
 
-  const addToCart = (product) => {
+  const addToCart = (product, selectedColorIndex) => {
     const existingItemIndex = cartItems.findIndex(
-      (item) => item.name === product.name
+      (item) => item.name === product.name && item.selectedColorIndex === selectedColorIndex
     );
-    const updatedCart =
-      existingItemIndex === -1
-        ? [...cartItems, { ...product, cartQuantity: 1 }]
-        : cartItems.map((item) =>
-            item.name === product.name
-              ? { ...item, cartQuantity: item.cartQuantity + 1 }
-              : item
-          );
-
+  
+    let updatedCart;
+    
+    if (existingItemIndex === -1) {
+      updatedCart = [...cartItems, { ...product, cartQuantity: 1, selectedColorIndex }];
+    } else {
+      updatedCart = cartItems.map((item, index) =>
+        index === existingItemIndex
+          ? { ...item, cartQuantity: item.cartQuantity + 1 }
+          : item
+      );
+    }
+  
     setCartItems(updatedCart);
     storeCartInLocalStorage(updatedCart);
   };
+  
 
-  const incrementQuantity = (itemName) => {
+  const incrementQuantity = (itemName, selectedColorIndex) => {
     const updatedCart = cartItems.map((item) =>
-      item.name === itemName
+      item.name === itemName && item.selectedColorIndex === selectedColorIndex
         ? { ...item, cartQuantity: item.cartQuantity + 1 }
         : item
     );
@@ -246,10 +278,10 @@ export const ToyStoreProvider = ({ children }) => {
     storeCartInLocalStorage(updatedCart);
   };
 
-  const decrementQuantity = (itemName) => {
+  const decrementQuantity = (itemName, selectedColorIndex) => {
     const updatedCart = cartItems
       .map((item) =>
-        item.name === itemName && item.cartQuantity > 1
+        item.name === itemName && item.selectedColorIndex === selectedColorIndex && item.cartQuantity > 1
           ? { ...item, cartQuantity: item.cartQuantity - 1 }
           : item
       )
@@ -259,12 +291,20 @@ export const ToyStoreProvider = ({ children }) => {
     storeCartInLocalStorage(updatedCart);
   };
 
-  const removeFromCart = (itemName) => {
-    const updatedCart = cartItems?.filter((item) => item.name !== itemName);
+  const removeFromCart = (itemName, selectedColorIndex) => {
+    const updatedCart = cartItems?.filter(
+      (item) => !(item.name === itemName && item.selectedColorIndex === selectedColorIndex)
+    );
     setCartItems(updatedCart);
     toast.success(`${itemName} removed from cart`);
     storeCartInLocalStorage(updatedCart);
   };
+
+  const removeCart = () => {
+    setCartItems([]);
+    storeCartInLocalStorage([]);
+  }
+  
 
   const calculateTotal = () => {
     return cartItems
@@ -306,6 +346,7 @@ export const ToyStoreProvider = ({ children }) => {
         sidebarState,
         openSidebar,
         closeSidebar,
+        removeCart,
         filteredProducts,
         handleAgeRangeClick,
         handlePriceRangeClick,

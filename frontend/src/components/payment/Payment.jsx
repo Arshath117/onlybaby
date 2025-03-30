@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { ToyStore } from "../context/ContextApi";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import axios from "axios";
 
 const Payment = () => {
@@ -27,7 +28,7 @@ const Payment = () => {
     setShippingPrice,
   } = useContext(ToyStore);
 
-  console.log("single product", singleProduct);
+ 
 
   const navigate = useNavigate();
   const { user } = useAuthStore.getState();
@@ -67,10 +68,10 @@ const Payment = () => {
       const orderData = {
         user: user,
         orderItems: orderItems.map((item) => ({
-          _id: item._id,
+          _id: item.productId,
           name: item.name,
           price: item.price,
-          image: item.image,
+          image: item.images,
           color: item.color,
           quantity: item.cartQuantity || 1,
           discount: item.discount || 0,
@@ -85,7 +86,7 @@ const Payment = () => {
       };
 
       const response = await axios.post(
-        `https://onlybaby-user.onrender.com/api/orders/saveAddress`,
+        `http://localhost:5001/api/orders/saveAddress`,
         orderData
       );
 
@@ -102,7 +103,7 @@ const Payment = () => {
       });
     } catch (error) {
       console.error("Error processing order:", error);
-      alert("Something went wrong. Please try again later.");
+      toast.warning("Something went wrong. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -121,8 +122,8 @@ const Payment = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-xl overflow-hidden">
+      <div className="max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
+        <div className="bg-white rounded-lg shadow-xl ">
           {/* Form Header */}
           <div className="bg-gray-800 px-8 py-6">
             <h2 className="text-2xl font-bold text-white">Billing Details</h2>
@@ -267,11 +268,11 @@ const Payment = () => {
             </div>
 
             {/* Submit Button */}
-            <div className="mt-8">
+            <div className="mt-2">
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full flex justify-center items-center px-6 py-3 rounded-md text-white text-lg font-medium transition-colors duration-200 ${
+                className={`w-full flex justify-center items-center px-1 py-3 rounded-md text-white text-lg font-medium transition-colors duration-200 ${
                   isLoading
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-gray-800 hover:bg-gray-700"

@@ -27,6 +27,8 @@ import OtpVerification from "./registerLogin/OtpVerification";
 import ForgetPassword from "./registerLogin/ForgetPassword";
 import MembershipSidebar from "./membership/MembershipSidebar";
 import axios from "axios";
+import { toast } from "react-toastify";
+
 
 const Nav = () => {
   const navigate = useNavigate();
@@ -60,6 +62,109 @@ const Nav = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredProduct, setFilteredProduct] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+
+  const [activeTab, setActiveTab] = useState('orders');
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [showUpdateForm, setShowUpdateForm] = useState(false);
+  const [editingReview, setEditingReview] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [deletedImages, setDeletedImages] = useState([]);
+  const [deletedIndexes, setDeletedIndexes] = useState([]);
+  
+const fetchUserReviews = async () => {
+    setLoadingReviews(true);
+    try {
+      const response = await fetch(`http://localhost:5001/api/review/fetch/${user.email}`);
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log(data.reviews)
+
+      if (data && data.reviews) {
+        setReviews(data.reviews);
+      } else {
+        setReviews([]); 
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error.message); 
+      setReviews([]); 
+    }
+    setLoadingReviews(false);
+  };
+
+  const handleUpdateReview = async (productName, index, updatedReview) => {
+    try {
+        const newImagesBase64 = updatedReview.images.some(file => file instanceof File)
+            ? await Promise.all(
+                updatedReview.images.map((file) => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onloadend = () => resolve(reader.result);
+                    });
+                })
+            )
+            : [];
+
+        const response = await fetch("http://localhost:5001/api/review/reviews/update", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                productName,
+                userEmail: updatedReview.userEmail,
+                rating: updatedReview.rating,
+                comment: updatedReview.comment,
+                images: newImagesBase64,
+                deletedIndexes: deletedIndexes,
+            }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            toast.success("Review updated successfully!");
+            setDeletedIndexes([]);
+            setSelectedImages([]);
+            setShowUpdateForm(false);
+        } else {
+            toast.warning(data.error);
+        }
+    } catch (error) {
+        console.error("Error updating review:", error);
+    }
+};
+
+
+  const handleDeleteReview = async (productName, email) => {
+    try {
+
+      console.log(email)
+      const response = await fetch(`http://localhost:5001/api/review/reviews/${productName}/${email}`, {
+        method: 'DELETE',
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        setReviews(data.reviews);
+        fetchUserReviews()
+      } else {
+        console.error('Failed to delete review:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error deleting review:', error);
+    }
+  };
+  
+
+useEffect(() => {
+  if (activeTab === 'reviews' && user?.isVerified) {
+    fetchUserReviews();
+  }
+}, [activeTab, user]);
+  
+
 
   //data from context
   const {
@@ -86,6 +191,7 @@ const Nav = () => {
   const searchRef = useRef(null);
   const searchQueryRef = useRef(null);
   const modalRef = useRef();
+  const cartRef = useRef();
 
   const handleLogout = async () => {
     setLoading(true);
@@ -106,7 +212,7 @@ const Nav = () => {
 
         const userId = user._id;
 
-        await axios.put(`https://onlybaby-user.onrender.com/api/auth/updateUserItems`, {
+        await axios.put(`http://localhost:5001/api/auth/updateUserItems`, {
           userId,
           cartItems: filteredCartItems,
           likedItems: filteredLikedItems,
@@ -126,6 +232,7 @@ const Nav = () => {
   };
 
   const handleCartClicked = () => {
+    console.log(cartItems);
     setCartClicked((prev) => !prev);
   };
 
@@ -137,11 +244,6 @@ const Nav = () => {
     setCreateAccountClicked((prev) => !prev);
   };
 
-  const handleOutsideClick = (e) => {
-    if (modalRef.current && !modalRef.current.contains(e.target)) {
-      setSignIn(false);
-    }
-  };
 
   const handleNotificationClick = () => {
     setShowOrderNotification(false);
@@ -149,15 +251,36 @@ const Nav = () => {
   };
 
   useEffect(() => {
-    if (signIn) {
-      document.addEventListener("mousedown", handleOutsideClick);
-    } else {
-      document.removeEventListener("mousedown", handleOutsideClick);
-    }
+    const handleOutsideClick = (event) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target) &&
+        searchClicked
+      ) {
+        setSearchClicked(false);
+      }
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target) &&
+        signIn
+      ) {
+        setSignIn(false);
+        setActiveTab("orders");
+      }
+      if (
+        cartRef.current &&
+        !cartRef.current.contains(event.target) &&
+        CartClicked
+      ) {
+        setCartClicked(false)
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+   
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
-  }, [signIn]);
+  }, [signIn, searchClicked, CartClicked]);
 
   const handleMenuClick = () => {
     if (searchClicked) {
@@ -193,6 +316,37 @@ const Nav = () => {
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleDeleteImage = (index, type) => (e) => {
+
+    e.preventDefault();  
+    e.stopPropagation();
+    if (type === "existing") {
+        setDeletedIndexes((prev) => [...prev, index]);
+        setEditingReview((prev) => ({
+            ...prev,
+            _doc: {
+                ...prev._doc,
+                images: prev._doc.images.filter((_, i) => i !== index),
+            },
+        }));
+    } else {
+        setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+    }
+};
+
+const OpenProduct = (id, selectedColor) => {
+  try {
+    let product = products.find((item) => item._id === id);
+    
+    product = {...product, selectedColor: selectedColor}
+    console.log(product)
+    openSidebar(product);
+  } catch (error) {
+    console.log(`Error Opening Product : ${error}`)
+  }
+}
+
+
   return (
     <div
       className={`text-gray-800 py-3 px-3 md:px-10 navbar fixed top-0 left-0 w-full bg-white z-50 shadow-md transition-transform duration-300 ease-in-out transform  ${
@@ -223,7 +377,7 @@ const Nav = () => {
               <img
                 src="/assets/logo.png"
                 alt="Only Baby Logo"
-                className="h-5 sm:h-7"
+                className="h-5 sm:h-9"
               />
             </Link>
           </li>
@@ -289,6 +443,7 @@ const Nav = () => {
 
       {searchClicked && (
         <div
+          ref={searchRef}
           className="absolute top-13 left-0 w-full lg:w-7/12 rounded-xl bg-white shadow-lg z-50 
                         transform transition-all duration-200 ease-out"
         >
@@ -555,138 +710,316 @@ const Nav = () => {
         </div>
       )}
 
-      {signIn && (
-        <div
-          className={`
-      fixed top-0 right-0 w-full md:w-8/12 h-screen
-      bg-gradient-to-br from-blue-50 to-white
-      shadow-2xl border-4 border-gray-200
-      transform transition-all duration-500 ease-out 
-      ${signIn ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"}
-      backdrop-blur-sm overflow-auto
-    `}
-          ref={modalRef}
-        >
-          <div className="flex items-center justify-between p-6 text-black border-b border-gray-100">
-            <div className="font-light text-2xl tracking-wide hover:tracking-wider transition-all duration-300">
-              <i>OnlyBaby</i>
+        {signIn && (
+          <div
+            className={`fixed top-0 right-0 w-full md:w-8/12 h-screen bg-gradient-to-br from-blue-50 to-white shadow-2xl border-4 border-gray-200 transform transition-all duration-500 ease-out ${signIn ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"} backdrop-blur-sm overflow-auto`}
+            ref={modalRef}
+          >
+            <div className="flex items-center justify-between p-6 text-black border-b border-gray-100">
+              <div className="font-light text-2xl tracking-wide hover:tracking-wider transition-all duration-300">
+                <i>OnlyBaby</i>
+              </div>
+              <button
+                onClick= {() => { setSignIn(false); setActiveTab("orders")}}
+                className="p-2 hover:bg-gray-100 rounded-full transition-all duration-300 transform hover:rotate-90"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <button
-              onClick={() => setSignIn(false)}
-              className="p-2 hover:bg-gray-100 rounded-full transition-all duration-300 transform hover:rotate-90"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
 
-          {user?.isVerified ? (
-            <div className="p-6 flex flex-col md:flex-row">
-              {/* Main Content Area */}
-              <div className="space-y-6 flex-grow">
-                <p className="font-semibold text-3xl mb-4 text-gray-800 animate-fade-in">
-                  Hello {user.name}
-                </p>
-                <p className="font-medium text-2xl pb-3 border-b border-gray-200 mb-6 text-gray-700">
-                  Your orders
-                </p>
-                <ul className="space-y-4">
-                  {[
-                    {
-                      text: "Track and Manage Your Orders",
-                      action: () => {
-                        navigate("/purchase-history");
-                        setSignIn(false);
-                      },
-                    },
-                    {
-                      text: "Buy Again",
-                      action: () => {
-                        navigate("/");
-                        setSignIn(false);
-                      },
-                    },
-                  ].map((item, index) => (
-                    <li
-                      key={index}
-                      onClick={item.action}
-                      className="py-3 px-4 rounded-lg hover:bg-blue-50 transition-all duration-300 cursor-pointer text-gray-600 hover:text-gray-900 hover:translate-x-2 transform"
+            {user?.isVerified ? (
+              <div className="p-6 flex flex-col md:flex-row">
+                {/* Main Content Area */}
+                <div className="space-y-6 flex-grow">
+                  <p className="font-semibold text-3xl mb-4 text-gray-800 animate-fade-in">
+                    Hello {user.name}
+                  </p>
+                  <div className="flex justify-start space-x-4 items-center pb-3 border-b border-gray-200 mb-6">
+                    <p
+                      className={`font-medium text-2xl text-gray-700 cursor-pointer hover:text-blue-600 ${activeTab === 'orders' ? 'text-blue-600 border-b-2 border-blue-600' : ''}`}
+                      onClick={() => setActiveTab('orders')}
                     >
-                      {item.text}
-                    </li>
-                  ))}
-                </ul>
+                      Your Orders
+                    </p>
+                    <p
+                      className={`font-medium text-2xl text-gray-700 cursor-pointer hover:text-blue-600 ${activeTab === 'reviews' ? 'text-blue-600 border-b-2 border-blue-600' : ''}`}
+                      onClick={() => setActiveTab('reviews')}
+                    >
+                      Reviews
+                    </p>
+                  </div>
 
-                {/* Buttons Section */}
-                <div className="flex justify-between items-center bg-transparent border-t shadow-lg p-6 md:block ">
-                  {/* Membership Button */}
-                  <button
-                    onClick={() => setShowMembershipPayment(true)}
-                    className={`md:w-full bg-gradient-to-r from-pink-500 to-rose-600 text-white px-3 py-2 md:py-4 rounded-lg hover:from-pink-600 hover:to-rose-700 transform hover:scale-[1.02] transition-all duration-200 shadow-md hover:shadow-lg ${
-                      memberShip ? "cursor-not-allowed opacity-50" : ""
-                    }`}
-                  >
-                    {memberShip ? "Already a member" : "Get Membership"}
-                  </button>
+                  {activeTab === 'orders' ? (
+                    <ul className="space-y-4">
+                      {[{ text: "Track and Manage Your Orders", action: () => { navigate("/purchase-history"); setSignIn(false); }, }, { text: "Buy Again", action: () => { navigate("/"); setSignIn(false); }, }].map((item, index) => (
+                        <li
+                          key={index}
+                          onClick={item.action}
+                          className="py-3 px-4 rounded-lg hover:bg-blue-50 transition-all duration-300 cursor-pointer text-gray-600 hover:text-gray-900 hover:translate-x-2 transform"
+                        >
+                          {item.text}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="space-y-4">
+                      {loadingReviews ? (
+                        <p>Loading reviews...</p>
+                      ) : reviews.length === 0 ? (
+                        <p>No reviews yet</p>
+                      ) : (
+                        <ul className="space-y-4">
+                        {reviews.map((review, index) => (
+                          <li key={index} className="p-4 border rounded-lg">
+                            <p><strong>Product:</strong> {review?.productName || 'N/A'}</p>
+                            <p><strong>Rating:</strong> {review?._doc?.rating || 'N/A'}/5</p>
+                            <p><strong>Comment:</strong> {review?._doc?.comment || 'N/A'}</p>
+                            <p><strong>Created:</strong> {review?._doc?.createdAt ? new Date(review?._doc?.createdAt).toLocaleDateString() : 'N/A'}</p>
+                      
+                            {/* Handle Images */}
+                            {review?._doc?.images && review?._doc?.images.length > 0 && (
+                              <div className="flex space-x-2 mt-2">
+                                {review?._doc?.images.map((img, i) => (
+                                  <img key={i} src={img} alt="Review" className="w-20 h-20 object-cover" />
+                                ))}
+                              </div>
+                            )}
+                      
+                            {/* Action Buttons */}
+                            <div className="mt-2 space-x-2">
+                              <button
+                                onClick={() => {
+                                  setEditingReview({ index, ...review });
+                                  // console.log(editingReview)
+                                  setShowUpdateForm(true);
+                                }}
+                                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                              >
+                                Update
+                              </button>
+                              <button
+                                onClick={() => {
+                                  console.log(`name: ${review?.productName} index : ${review?._doc?.userEmail}`);
+                                  if (window.confirm('Are you sure you want to delete this review?')) {
+                                    handleDeleteReview(review?.productName, review?._doc?.userEmail);
+                                  }
 
-                  {/* Logout Button */}
-                  <button
-                    onClick={handleLogout}
-                    className="md:w-full mt-4 bg-gradient-to-r from-gray-800 to-black text-white py-3 px-3 rounded-full md:rounded-lg hover:from-gray-700 hover:to-black transform hover:scale-[1.02] transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <svg
-                        className="animate-spin h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8H4z"
-                        ></path>
-                      </svg>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        {/* Icon for small screens */}
-                        <div className="md:hidden">
-                          <LogOut className="h-5 w-5" />
+                                }}
+                                className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>              
+                      )}
+                      {showUpdateForm && editingReview && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                            <h2 className="text-xl font-semibold mb-4">Update Review</h2>
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                handleUpdateReview(
+                                  editingReview.productName,
+                                  editingReview.index,
+                                  {
+                                    userEmail: user.email,
+                                    rating: parseInt(e.target.rating.value),
+                                    comment: e.target.comment.value,
+                                    images: selectedImages,
+                                    deletedIndexes: deletedIndexes, 
+                                  }
+                                );
+                                setDeletedImages([]);
+                                setSelectedImages([]);
+                                fetchUserReviews();
+                                setShowUpdateForm(false);
+                                
+                              }}
+                            >
+                              
+                              <div className="mb-4">
+                              
+                                  <label className="block text-sm font-medium text-gray-700">Rating (1-5)</label>
+                                  <input
+                                    type="number"
+                                    name="rating"
+                                    defaultValue={editingReview?._doc?.rating}
+                                    min="1"
+                                    max="5"
+                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+                                    required
+                                    
+                                  />
+                                </div>
+
+                                <div className="mb-4">
+                                  <label className="block text-sm font-medium text-gray-700">Comment</label>
+                                  <textarea
+                                    name="comment"
+                                    defaultValue={editingReview?._doc?.comment}
+                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+                                    required
+                                    placeholder={editingReview?.comment ? `Previous: ${editingReview.comment}` : "Enter comment"}
+                                  />
+                                </div>
+
+                              <div className="mb-4">
+                                  <label className="block text-sm font-medium text-gray-700">Images (max 3)</label>
+            
+                                  {editingReview?._doc?.images?.length > 0 && (
+                                      <div className="flex flex-wrap gap-2 mt-2">
+                                          {editingReview._doc.images.map((image, index) => (
+                                              <div key={index} className="relative">
+                                                  <img 
+                                                      src={image} 
+                                                      alt={`Uploaded ${index}`} 
+                                                      className="w-24 h-24 object-cover rounded-md border" 
+                                                  />
+                                                  <button 
+                                                      type="button" 
+                                                      onClick={handleDeleteImage(index, "existing")}
+                                                      className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
+                                                  >
+                                                      X
+                                                  </button>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  )}
+
+                                  {selectedImages.length > 0 && (
+                                      <div className="flex flex-wrap gap-2 mt-2">
+                                          {selectedImages.map((image, index) => (
+                                              <div key={index} className="relative">
+                                                  <img 
+                                                      src={URL.createObjectURL(image)} 
+                                                      alt={`New Upload ${index}`} 
+                                                      className="w-24 h-24 object-cover rounded-md border" 
+                                                  />
+                                                  <button 
+                                                      type="button" 
+                                                      onClick={handleDeleteImage(index, "new")}
+                                                      className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
+                                                  >
+                                                      X
+                                                  </button>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  )}
+
+                              {/* Image Upload Input */}
+                              <input
+                                type="file"
+                                name="images"
+                                multiple
+                                accept="image/*"
+                                className="mt-2 block w-full border-gray-300 rounded-md shadow-sm"
+                                onChange={(e) => setSelectedImages([...selectedImages, ...Array.from(e.target.files)])}
+                                disabled={(editingReview?._doc?.images?.length || 0) + selectedImages.length >= 3}
+                              />
+
+                              {/* Show remaining slots */}
+                              <p className="text-sm text-gray-500 mt-2">
+                                {3 - ((editingReview?._doc?.images?.length || 0) + selectedImages.length)} slots remaining
+                              </p>
+
+                              </div>
+
+
+                              <div className="flex justify-end space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowUpdateForm(false)}
+                                  className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </form>
+                          </div>
                         </div>
-                        {/* Text for medium and larger screens */}
-                        <p className="hidden md:block text-sm md:text-base">
-                          Logout
-                        </p>
-                      </div>
-                    )}
-                  </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Buttons Section */}
+                  <div className="flex justify-between items-center bg-transparent border-t shadow-lg p-6 md:block ">
+                    {/* Membership Button */}
+                    <button
+                      onClick={() => setShowMembershipPayment(true)}
+                      className={`md:w-full bg-gradient-to-r from-pink-500 to-rose-600 text-white px-3 py-2 md:py-4 rounded-lg hover:from-pink-600 hover:to-rose-700 transform hover:scale-[1.02] transition-all duration-200 shadow-md hover:shadow-lg ${memberShip ? "cursor-not-allowed opacity-50" : ""}`}
+                    >
+                      {memberShip ? "Already a member" : "Get Membership"}
+                    </button>
+
+                    {/* Logout Button */}
+                    <button
+                      onClick={handleLogout}
+                      className="md:w-full mt-4 bg-gradient-to-r from-gray-800 to-black text-white py-3 px-3 rounded-full md:rounded-lg hover:from-gray-700 hover:to-black transform hover:scale-[1.02] transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <svg
+                          className="animate-spin h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v8H4z"
+                          ></path>
+                        </svg>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          {/* Icon for small screens */}
+                          <div className="md:hidden">
+                            <LogOut className="h-5 w-5" />
+                          </div>
+                          {/* Text for medium and larger screens */}
+                          <p className="hidden md:block text-sm md:text-base">Logout</p>
+                        </div>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="animate-fade-in ">
-              {!createAccountClicked ? (
-                <Login onClickAccount={handleCreateAccountClicked} />
-              ) : (
-                <Register onClickAccount={handleCreateAccountClicked} />
-              )}
-            </div>
-          )}
-        </div>
-      )}
+            ) : (
+              <div className="animate-fade-in ">
+                {!createAccountClicked ? (
+                  <Login onClickAccount={handleCreateAccountClicked} />
+                ) : (
+                  <Register onClickAccount={handleCreateAccountClicked} />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
 
       {CartClicked && (
         <div
           className="fixed top-0 right-0 w-full lg:w-7/12 h-screen bg-white shadow-2xl transform transition-all duration-500 ease-out translate-x-0"
-          ref={modalRef}
+          ref={cartRef}
         >
           <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-white">
             <div className="font-thin text-2xl tracking-wide">
@@ -724,19 +1057,20 @@ const Nav = () => {
                   >
                     <div className="h-[100px] w-[100px] overflow-hidden rounded-lg group">
                       <img
-                        src={item?.image[0]}
+                        src={item?.images[0]}
                         alt={item?.name}
                         className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-                        onClick={() => openSidebar(item)}
+                        onClick={() => OpenProduct(item?.productId, item?.color)}
                       />
                     </div>
                     <div className="flex-1 space-y-3">
                       <p className="font-medium text-gray-800 line-clamp-2">
                         {item?.name}
                       </p>
+                      <p className="font-medium text-gray-600 font-sans">Color : {item?.color}</p>
                       <div className="flex items-center space-x-4">
                         <button
-                          onClick={() => decrementQuantity(item?.name)}
+                          onClick={() => decrementQuantity(item?.name, item?.selectedColorIndex)}
                           className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-200"
                         >
                           <span className="text-gray-600">-</span>
@@ -745,7 +1079,7 @@ const Nav = () => {
                           {item?.cartQuantity}
                         </span>
                         <button
-                          onClick={() => incrementQuantity(item?.name)}
+                          onClick={() => incrementQuantity(item?.name,item?.selectedColorIndex)}
                           className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-200"
                         >
                           <span className="text-gray-600">+</span>
@@ -758,7 +1092,7 @@ const Nav = () => {
                       </p>
                       <button
                         className="text-sm text-red-500 hover:text-red-600 transition-colors duration-200"
-                        onClick={() => removeFromCart(item?.name)}
+                        onClick={() => removeFromCart(item?.name, item?.selectedColorIndex)}
                       >
                         Remove
                       </button>
@@ -912,11 +1246,18 @@ const Nav = () => {
               likedItems.map((item) => (
                 <div
                   key={item.name}
+                  onClick= {() => {
+                    openSidebar(item);
+                    setLikeClicked(false);
+                  }}
                   className="flex justify-between p-4 space-x-2 border-2 rounded-xl m-1 pb-3 bg-white"
                 >
-                  <div className="h-[100px] w-[100px]">
+                  <div className="h-[100px] w-[100px]" onClick= {() => {
+                    openSidebar(item);
+                    setLikeClicked(false);
+                  }}>
                     <img
-                      src={item.image[0]}
+                      src={item.colors[0].images[0]}
                       alt={item.name}
                       className="w-full h-full object-cover rounded-lg"
                     />

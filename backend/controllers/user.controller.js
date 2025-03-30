@@ -9,6 +9,8 @@ import {
   sendVerificationEmail,
   sendWelcomeEmail,
 } from "../Mail/mail.js";
+
+
 export const signUp = async (req, res) => {
   try {
     const { name, email, password, likedItems, cartItems } = req.body;
@@ -60,6 +62,64 @@ export const signUp = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+export const isVerified = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res.status(201).json({ success: true, message: "User is verified" });
+    } else {
+      return res.status(200).json({ success: false, message: "User is not verified" });
+    }
+  } catch (error) {
+    console.log("Error verifying", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+
+export const verifyUnverified = async (req, res) => {
+  try{
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+    const verificationToken = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+
+    const user = await User.findOne({email});
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    await user.save();
+
+    await sendVerificationEmail(user.email, user.name, verificationToken);
+    res.status(201).json({
+      success : true,
+      message : "OTP sent successfully"
+    });
+  }catch(error){
+    console.log("Error in verifyUnverified controller", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 
 export const verifyEmail = async (req, res) => {
   try {
@@ -144,16 +204,18 @@ export const login = async (req, res) => {
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+    console.log(email)
     if (!email) {
       return res
         .status(400)
         .json({ success: false, message: "Email is required" });
     }
     const user = await User.findOne({ email });
+    console.log(user)
     if (!user) {
       return res
         .status(400)
-        .json({ success: false, message: "User not found" });
+        .json({ success: false, message: "User not found" }); 
     }
 
     const resetToken = crypto.randomBytes(20).toString("hex");

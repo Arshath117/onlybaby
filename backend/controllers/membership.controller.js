@@ -21,8 +21,6 @@ export const initiateMembershipPayment = async (req, res) => {
       });
     }
 
- 
-
     // Find user details (you can fetch more info if needed)
     const userRecord = await User.findById(user);
 

@@ -3,10 +3,19 @@ import { ToyStore } from "../context/ContextApi";
 import LoadingState from "./LoadingState";
 import ErrorState from "./ErrorState";
 
-const userPurchaseHistory = () => {
-    const { orders, loading, error, openSidebar } = useContext(ToyStore);
+const UserPurchaseHistory = () => {
+    const { orders, loading, error, openSidebar, products } = useContext(ToyStore);
     const [selectedOrder, setSelectedOrder] = React.useState(null); // Add selectedOrder state
 
+    const HandleSideBar = (name) => {
+        try {
+            const viewProduct = products.find((e)=> e.name === name)
+            openSidebar(viewProduct)
+            
+        } catch (error) {
+            console.log(`Error opening Product ${error}`)
+        }
+    };
 
     if (loading) return <LoadingState />;
     if (error) return <ErrorState error={error} />;
@@ -85,8 +94,13 @@ const userPurchaseHistory = () => {
                                     {order.orderItems && order.orderItems.length > 0 ? (
                                         <ul className="divide-y divide-gray-100">
                                             {order.orderItems.map(item => (
-                                                <li key={item._id} className="py-2 flex justify-between items-center hover:bg-gray-50 transition-colors duration-200 px-2 rounded-lg">
-                                                    <span className="text-sm text-gray-600" onClick={() => openSidebar(item)}>{item.name}</span>
+                                                <li key={item._id} className="py-2 flex justify-between items-center hover:bg-gray-50 transition-colors duration-200 px-2 rounded-lg"
+                                                onClick ={ () => { HandleSideBar(item.name); console.log(item)}}
+                                                >
+                                                   <div className="space-x-4">
+                                                   <span className="text-gray-600 font-semibold text-xl" >{item.name}</span>
+                                                   <span className="text-gray-600">Color : {item.color}</span>
+                                                   </div>
                                                     <div className="text-sm">
                                                         <span className="text-gray-500">{item.quantity} × </span>
                                                         <span className="font-medium text-purple-600">₹{item.price}</span>
@@ -107,4 +121,4 @@ const userPurchaseHistory = () => {
     );
 };
 
-export default userPurchaseHistory;
+export default UserPurchaseHistory;

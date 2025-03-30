@@ -1,63 +1,75 @@
 import mongoose from "mongoose";
 
-const productSchema = new mongoose.Schema({
-    name : {
-        type : String,
-        required: true,
-        unique : true,
+const productSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    price : {
-        type : Number,
-        required : true,
+    price: {
+      type: Number,
+      required: true,
     },
-    image:{
-        type : [String],
-        required : true,
+    color: [
+      {
+        color: {
+          type: String,
+          required: true,
+        },
+        images: {
+          type: [String],
+          required: true,
+        },
+        video: {
+          type : String,
+          default : null
+        }
+      },
+    ],
+    defaultColorIndex: {
+      type: Number,
+      default: 0, 
     },
-    color : {
-        type : String,
-        required : true,
+    ageGroup: {
+      type: String,
+      required: true,
     },
-    ageGroup:{
-        type : String,
-        required : true,
+    description: {
+      type: String,
+      required: true,
     },
-    description : {
-        type : String,
-        required : true,
+    itemsIncluded: {
+      type: String,
     },
-    itemsIncluded : {
-        type : String,
-        // required : true,
+    features: {
+      type: String,
+      required: true,
     },
-    features : {
-        type : String,
-        required : true,
+    benefits: {
+      type: String,
+      required: true,
     },
-    benefits : {
-        type : String,
-        required : true,
+    bestSellers: {
+      type: Boolean,
+      default: false,
     },
-    bestSellers : {
-        type : Boolean,
-        default : false,
+    quantity: {
+      type: Number,
+      default: 10,
     },
-    quantity : {
-        type : Number,
-        default : 10,
+    newArrivals: {
+      type: Boolean,
+      default: false,
     },
-    newArrivals : {
-        type : Boolean,
-        default : false,
-    }
-},{
-    timestamps:true,
-})
+  },
+  {
+    timestamps: true,
+  }
+);
 
-const Product = new mongoose.model("Product",productSchema);
-
+const Product = mongoose.model("Product", productSchema);
 export default Product;
-
 
 
 

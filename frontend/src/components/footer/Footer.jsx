@@ -4,6 +4,12 @@ import { Link } from "react-router-dom";
 import { Instagram, MessageCircle, Phone } from "lucide-react";
 
 const Footer = () => {
+
+  const latitude = 11.3405174;
+  const longitude = 77.7188919;
+  const mapUrl = "https://www.google.com/maps?q=11.3405916,77.7189318"; // Coordinates for the location
+
+
   const addresses = [
     {
       street: "No.423, Brough Road, near Savitha Bus Stop",
@@ -64,76 +70,101 @@ const Footer = () => {
               </div>
             </div>
 
-            {/* Developers Section */}
-            <div className="space-y-3 lg:w-1/4">
-              <h3 className="text-lg font-semibold tracking-wider text-rose-700 uppercase">
-                Developers
-              </h3>
-              <ul className="space-y-2">
-                <li>
-                  <a
-                    href="https://sanjeevikumarwd.onrender.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-rose-600 transition-colors"
-                  >
-                    Sanjeevikumar
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://sanjeevikumarwd.onrender.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-rose-600 transition-colors"
-                  >
-                    Keerthivasan
-                  </a>
-                </li>
-              </ul>
-            </div>
+              {/*Maps */}
+              <div className="flex flex-row justify-between">
+                  <div className="w-2/3 flex flex-col space-y-8">
+                    {/* Developers Section */}
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold tracking-wider text-rose-700 uppercase">
+                        Developers
+                      </h3>
+                      <ul className="space-y-2">
+                        <li>
+                          <a
+                            href="https://sanjeevikumarwd.onrender.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-600 hover:text-rose-600 transition-colors"
+                          >
+                            Sanjeevikumar
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="https://sanjeevikumarwd.onrender.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-600 hover:text-rose-600 transition-colors"
+                          >
+                            Keerthivasan
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
 
-            {/* Social Media */}
-            <div className="space-y-3 lg:w-1/4">
-              <h3 className="text-lg font-semibold tracking-wider text-rose-700 uppercase">
-                Connect With Us
-              </h3>
-              <div className="flex space-x-4">
-                {/* WhatsApp */}
-                <a
-                  href="https://wa.me/9790177999"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-3 rounded-full bg-rose-100 hover:bg-rose-200 transition-colors"
-                  aria-label="WhatsApp"
-                >
-                  <MessageCircle className="w-6 h-6 text-rose-600" />
-                </a>
+                    {/* Social Media */}
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold tracking-wider text-rose-700 uppercase">
+                        Connect With Us
+                      </h3>
+                      <div className="flex space-x-4">
+                        <a
+                          href="https://wa.me/9790177999"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-3 rounded-full bg-rose-100 hover:bg-rose-200 transition-colors"
+                          aria-label="WhatsApp"
+                        >
+                          <MessageCircle className="w-6 h-6 text-rose-600" />
+                        </a>
+                        <a
+                          href="https://www.instagram.com/styleplus_perundurai?igsh=MXV1N3RpbTNkeW81bQ=="
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-3 rounded-full bg-rose-100 hover:bg-rose-200 transition-colors"
+                          aria-label="Instagram"
+                        >
+                          <Instagram className="w-6 h-6 text-rose-600" />
+                        </a>
+                        <a
+                          href="tel:9790177999"
+                          className="p-3 rounded-full bg-rose-100 hover:bg-rose-200 transition-colors"
+                          aria-label="Mobile"
+                        >
+                          <Phone className="w-6 h-6 text-rose-600" />
+                        </a>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Follow us for updates and special offers!
+                      </p>
+                    </div>
+                  </div>
 
-                {/* Instagram */}
-                <a
-                   href="https://www.instagram.com/styleplus_perundurai?igsh=MXV1N3RpbTNkeW81bQ=="
-                   target="_blank"
-                   rel="noopener noreferrer"
-                  className="p-3 rounded-full bg-rose-100 hover:bg-rose-200 transition-colors"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="w-6 h-6 text-rose-600" />
-                </a>
+                  {/* Map Section */}                
+                  <div className="w-1/3 mx-auto">
+                    <div className="w-full">
+                      {/* Clickable Map Container */}
+                      <div className="relative cursor-pointer border rounded-lg overflow-hidden shadow-lg mr-4">
+                        <iframe
+                          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3911.9194837460423!2d77.7189318!3d11.3405916!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba96f392c2b4f19%3A0xfe7f678b7ebff5d0!2s423%2C%20Brough%20Rd%2C%20Chidambaram%20Colony%2C%20Erode%2C%20Tamil%20Nadu%20638001!5e0!3m2!1sen!2sin!4v1742982016859!5m2!1sen!2sin"
+                          width="100%"
+                          height="300"
+                          style={{ border: 0 }}
+                          allowFullScreen
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                        {/* Transparent Overlay */}
+                        <div
+                          className="absolute inset-0"
+                          onClick={() => window.open(mapUrl, "_blank")}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                {/* Mobile */}
-                <a
-                  href="tel:9790177999"
-                  className="p-3 rounded-full bg-rose-100 hover:bg-rose-200 transition-colors"
-                  aria-label="Mobile"
-                >
-                  <Phone className="w-6 h-6 text-rose-600" />
-                </a>
-              </div>
-              <p className="text-sm text-gray-600 mt-4">
-                Follow us for updates and special offers!
-              </p>
-            </div>
+
           </div>
         </div>
 

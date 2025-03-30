@@ -7,14 +7,14 @@ import { motion } from "framer-motion";
 import axios from "axios";
 
 const Login = ({ onClickAccount }) => {
-  const { login } = useAuthStore();
-  const { setCartItems, setShowForgetPage, setLikedItems } =
+  const { login, verifyUnverified, isVerified } = useAuthStore();
+  const { setCartItems, setShowForgetPage, setLikedItems, } =
     useContext(ToyStore);
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
+  const { setShowOTP } = useContext(ToyStore);
  
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -22,9 +22,16 @@ const Login = ({ onClickAccount }) => {
     try {
       const loginResponse = await login(email, password);
       const loggedInUser = loginResponse;
-
-      toast.success("Login successful");
-      navigate("/");
+      const user = await isVerified(email);
+      if (user.success && user.message === "User is verified") {
+        toast.success("Login successful");
+        navigate("/"); 
+      }else{
+        await verifyUnverified(email);
+        setShowOTP(true);
+        
+      }
+      
 
       if (loggedInUser) {
         const storedCartItems = localStorage.getItem("cartItems");
@@ -108,7 +115,7 @@ const Login = ({ onClickAccount }) => {
         const userId = loggedInUser._id;
 
         await axios.put(
-          `https://onlybaby-user.onrender.com/api/auth/updateUserItems`, // Combined Endpoint
+          `http://localhost:5001/api/auth/updateUserItems`, // Combined Endpoint
           {
             userId,
             cartItems: mergedCartItems,

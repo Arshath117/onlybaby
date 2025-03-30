@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import axios from "axios";
+import { toast } from "react-toastify";
 
+const api_url = "http://localhost:5001";
 
 export const useAuthStore = create((set) => ({
   user: JSON.parse(localStorage.getItem("user")) || null,
@@ -9,13 +11,47 @@ export const useAuthStore = create((set) => ({
   isCheckingAuth: false,
   message: null,
 
+  isVerified: async (email) => {
+    set({ error: null });
+    try {
+      const response = await axios.post(
+        `${api_url}/api/auth/isVerify`,
+        {email},
+        {headers:{
+          "Content-Type" : "application/json",
+        }}
+      );
+
+      return response.data;
+    } catch (error) {
+      set({ error: error.response.data.message || "Error verifying email" });
+      throw error;
+    }
+  },
+  verifyUnverified: async (email) => {
+    set({ error: null });
+    try{
+        const response = await axios.post(
+        `${api_url}/api/auth/verify`,
+        {email},
+        {headers : {
+          "Content-type" : "application/json",
+        }}
+      );
+
+      toast.success(response.data.message || "OTP sent successfully")
+    }catch(error){
+      set({ error: error.response.data.message || "Error verifying email" });
+      throw error;
+    }
+  },
 
   signup: async (email, name, password) => {
     set({ error: null });
 
     try {
       const response = await axios.post(
-        `https://onlybaby-user.onrender.com/api/auth/signup`,
+        `http://localhost:5001/api/auth/signup`,
         {
           name,
           email,
@@ -43,7 +79,7 @@ export const useAuthStore = create((set) => ({
   verifyEmail: async (code) => {
     set({ error: null });
     try {
-      const response = await axios.post(`${api_url}/api/auth/verifyEmail`, { code });
+      const response = await axios.post(`http://localhost:5001/api/auth/verifyEmail`, { code });
       const user = response.data.user;
       localStorage.setItem("user", JSON.stringify(user)); // Store user in localStorage
       set({ user, isAuthenticated: true });
@@ -56,7 +92,7 @@ export const useAuthStore = create((set) => ({
   checkAuth: async () => {
     set({ isCheckingAuth: true, error: null });
     try {
-      const response = await axios.get(`${api_url}/api/auth/check-Auth`);
+      const response = await axios.get(`http://localhost:5001/api/auth/check-Auth`);
       const user = response.data.user;
       localStorage.setItem("user", JSON.stringify(user)); // Store user in localStorage
       set({ user, isAuthenticated: true, isCheckingAuth: false });
@@ -69,7 +105,7 @@ export const useAuthStore = create((set) => ({
   login: async (email, password) => {
     set({ error: null });
     try {
-      const response = await axios.post(`${api_url}/api/auth/login`, {
+      const response = await axios.post(`http://localhost:5001/api/auth/login`, {
         email,
         password,
       });

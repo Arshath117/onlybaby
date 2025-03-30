@@ -8,15 +8,42 @@ import DiscountBadge from "./DiscountBadge";
 import ActionButton from "./ActionButton";
 
 const Cards = ({ product }) => {
-  const { addToCart, openSidebar, handleLikeToggle, likedItems } =
+
+  
+  const { addToCart, openSidebar, handleLikeToggle, likedItems, cartItems } =
     useContext(ToyStore);
   
   const isLiked = likedItems.some((item) => item._id === product._id);
 
-  const handleAddToCart = (product) => {
-    addToCart(product);
-    toast.success(`${product.name} added to cart!`);
+  const isInCart = cartItems.some((item) => item._id === product._id);
+
+  const handleAddToCart = () => {
+    if (isInCart) {
+      toast.warning(`${product.name} is already in the cart!`);
+    } else {
+      const cartProduct = {
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        color: product.colors[0].color,
+        images: product.colors[0].images,
+        ageGroup: product.ageGroup,
+        bestSellers: product.bestSellers,
+        benefits: product.benefits, 
+        createdAt: product.createdAt,
+        description: product.description,
+        features: product.features,
+        discount: product.discount,
+        newArrivals: product.newArrivals,
+        quantity: product.quantity, 
+        updatedAt: product.updatedAt,
+      };
+  
+      addToCart(cartProduct, 0); 
+      toast.success(`${product.name} added to cart!`);
+    }
   };
+  
 
   const discountPercentage = product.originalPrice
     ? Math.round(
@@ -29,12 +56,12 @@ const Cards = ({ product }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative flex flex-col justify-between max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg p-2 py-3 sm:px-5 md:px-2 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white dark:bg-gray-50 dark:text-gray-900"
+      className="relative flex flex-col justify-between max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg p-2 py-3 sm:px-5 md:px-2 rounded-lg shadow-lg shadow-gray-400 hover:shadow-xl transition-shadow duration-300 bg-white dark:bg-gray-50 dark:text-gray-900"
     >
       <DiscountBadge percentage={discountPercentage} />
 
       <ProductImage
-        image={product.image[0]}
+        image={product.colors[0].images[0]}
         name={product.name}
         onClick={() => openSidebar(product)}
       />
@@ -63,7 +90,7 @@ const Cards = ({ product }) => {
           ₹ {product.price}
         </motion.div>
 
-        <div className="flex gpap-2 md:gap-5">
+        <div className="flex gap-2 md:gap-5">
           <ActionButton onClick={() => handleAddToCart(product)}>
             <FaCartPlus className="text-[12px] md:text-xl text-black transition-colors duration-300 hover:text-blue-600" />
           </ActionButton>
