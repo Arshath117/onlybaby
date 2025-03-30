@@ -115,7 +115,7 @@ const Login = ({ onClickAccount }) => {
         const userId = loggedInUser._id;
 
         await axios.put(
-          `http://localhost:5001/api/auth/updateUserItems`, // Combined Endpoint
+          `https://onlybaby.onrender.com/api/auth/updateUserItems`, // Combined Endpoint
           {
             userId,
             cartItems: mergedCartItems,
