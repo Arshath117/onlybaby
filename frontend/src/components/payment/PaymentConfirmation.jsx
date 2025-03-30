@@ -35,7 +35,7 @@ const PaymentConfirmation = () => {
     try {
       
       
-      const paymentResponse = await axios.post(`https://onlybaby.onrender.com/api/orders/initiate`, {
+      const paymentResponse = await axios.post(`http://localhost:5001/api/orders/initiate`, {
         
         itemsPrice, // Base price
         shippingPrice, // Explicitly send shipping
@@ -54,7 +54,7 @@ const PaymentConfirmation = () => {
           const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
           console.log("Razorpay Response:", response);
           try {
-            await axios.post(`https://onlybaby.onrender.com/api/orders/verify`, {
+            await axios.post(`http://localhost:5001/api/orders/verify`, {
               razorpayOrderId: razorpay_order_id,
               razorpayPaymentId: razorpay_payment_id,
               razorpaySignature: razorpay_signature,

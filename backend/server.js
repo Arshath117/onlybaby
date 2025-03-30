@@ -18,10 +18,11 @@ const __dirname = path.resolve();
 app.use(express.json({limit: "50mb"}));
 app.use(express.urlencoded({limit: "50mb", extended: true}));
 
+
 // CORS Configuration for allowing credentials 
 const corsOptions = {
-  // origin: ['https://onlybaby.onrender.com', 'http://localhost:5174/', 'http://localhost:5173/'], // Allow the specific origin
-  origin: '*',
+  // origin: ['https://onlybaby.onrender.com', 'http://localhost:5174', 'http://localhost:5173', 'http://localhost:5001'],
+  origin: '*', // Allow the specific origin
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
   credentials: true, // Allow credentials (cookies, authorization headers)
@@ -30,6 +31,7 @@ const corsOptions = {
 app.use(cors(corsOptions));  
 
 if(process.env.NODE_ENV === "production"){
+  console.log("production mode")
   app.use(express.static(path.join(__dirname,"/frontend/dist"))); 
   app.get("*",(req,res)=>{
       res.sendFile(path.resolve(__dirname,"frontend","dist","index.html"));
