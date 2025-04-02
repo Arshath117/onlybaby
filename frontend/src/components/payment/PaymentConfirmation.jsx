@@ -47,7 +47,7 @@ const PaymentConfirmation = () => {
 
       const razorpayOrder = paymentResponse.data;
       const options = {
-        key: "rzp_test_VChoBnFDlKAiHL", // Replace with your Razorpay key
+        key: "rzp_live_lojTiGeQfU4eAN", // Replace with your Razorpay key
         amount: razorpayOrder.amount,
         currency: "INR",
         order_id: razorpayOrder.razorpayOrderId,
