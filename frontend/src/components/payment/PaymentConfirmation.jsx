@@ -32,57 +32,71 @@ const PaymentConfirmation = () => {
     visible: { opacity: 1, x: 0, transition: { duration: 0.4 } },
   };
 
-  const handlePayment = async () => {
+    const handlePayment = async () => {
     try {
-      
-      
       const paymentResponse = await axios.post(`https://onlybaby.onrender.com/api/orders/initiate`, {
-        
-        itemsPrice, // Base price
-        shippingPrice, // Explicitly send shipping
+        itemsPrice, 
+        shippingPrice, 
         addressId: shippingAddress,
-        user: user._id, // Ensure user is an ID if server expects it
+        user: user._id, 
         orderItems,
       });
-
+  
       const razorpayOrder = paymentResponse.data;
+  
+      console.log("Backend Order ID:", razorpayOrder.razorpayOrderId);
+  
       const options = {
-        key: "rzp_live_lojTiGeQfU4eAN", // Replace with your Razorpay key
+        key: "rzp_live_lojTiGeQfU4eAN", 
         amount: razorpayOrder.amount,
         currency: "INR",
-        order_id: razorpayOrder.razorpayOrderId,
+        order_id: razorpayOrder.razorpayOrderId, 
         handler: async (response) => {
-          const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
+          if (!response) {
+            toast.error("Payment failed! No response received.");
+            return;
+          }
+  
+          const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response || {};
+          if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            toast.error("Invalid Razorpay response!");
+            return;
+          }
+  
           console.log("Razorpay Response:", response);
+  
           try {
-           const res= await axios.post(`https://onlybaby.onrender.com/api/orders/verify`, {
+            const res = await axios.post(`https://onlybaby.onrender.com/api/orders/verify`, {
               razorpayOrderId: razorpay_order_id,
               razorpayPaymentId: razorpay_payment_id,
               razorpaySignature: razorpay_signature,
             });
-            if(res.data.status === "success") {
-            toast.success("Payment successful! Order placed.");
-            navigate("/");
-            if(!singleProduct){
-              removeCart();
+  
+            if (res.data.success) {  
+              setPaymentDone(true);  
+              toast.success("Payment successful! Order placed.");
+              navigate("/");
+              if (!singleProduct) {
+                removeCart();
+              }
+            } else {
+              setPaymentDone(false);
+              toast.error("Payment failed! Please try again.");
             }
-          }else{
-            setPaymentDone(false);
-            toast.error("Payment failed! Please try again.");
-          }
-            
           } catch (error) {
             setPaymentDone(false);
-            toast.error("Payment failed! Please try again.");
+            toast.error("Payment verification failed! Please try again.");
             console.error("Verification error:", error.response?.data || error);
-          }finally{
-            setPaymentDone(false);
           }
         },
-        prefill: { name: `${user.firstName} ${user.lastName}`, email: user.email, contact: user.phone },
+        prefill: { 
+          name: `${user.firstName} ${user.lastName}`, 
+          email: user.email, 
+          contact: user.phone 
+        },
         theme: { color: "#F37254" },
       };
-
+  
       const rzp1 = new window.Razorpay(options);
       rzp1.open();
     } catch (error) {
