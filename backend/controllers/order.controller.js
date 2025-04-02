@@ -120,7 +120,7 @@ export const initiatePayment = async (req, res) => {
   
     let userOrder = await Order.findOne({ user });
     const hasPurchasedBefore = userOrder.orders.length > 0;
-
+    console.log(hasPurchasedBefore)
     if (!userOrder) {
       // Create a new order document for the user if it doesn't exist
       userOrder = await Order.create({
@@ -137,8 +137,11 @@ export const initiatePayment = async (req, res) => {
       });
     }
 
-    // Calculate total price
-    const totalPrice = hasPurchasedBefore ? itemsPrice + 50 : itemsPrice;
+    const draftOrder = userOrder.orders.find((order) => order.isDraft);
+    const shippingFee = draftOrder?.shippingFee || 0; // Use stored value
+
+    const totalPrice = itemsPrice + shippingFee; // Ensure this matches frontend UI
+
     let finalTotal = totalPrice;
     console.log(finalTotal)
     if(member && member.paymentStatus){
@@ -169,7 +172,7 @@ export const initiatePayment = async (req, res) => {
       });
     }
 
-    // Find the existing draft order
+    // Find the existing draft  order
     const draftOrderIndex = userOrder.orders.findIndex(
       (order) => order.isDraft
     );
@@ -233,6 +236,7 @@ export const initiatePayment = async (req, res) => {
     });
   }
 };
+
 
 export const sendWhatsappMessage = async (orderDetails) => {
   try {
