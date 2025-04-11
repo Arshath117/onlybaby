@@ -47,7 +47,7 @@ const PaymentConfirmation = () => {
       console.log("Backend Order ID:", razorpayOrder.razorpayOrderId);
   
       const options = {
-        key: "rzp_live_lojTiGeQfU4eAN", 
+        key: "rzp_live_PynFXjq11Tlim5", 
         amount: razorpayOrder.amount,
         currency: "INR",
         order_id: razorpayOrder.razorpayOrderId, 
