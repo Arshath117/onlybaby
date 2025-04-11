@@ -118,7 +118,7 @@ const Footer = () => {
                           <MessageCircle className="w-6 h-6 text-rose-600" />
                         </a>
                         <a
-                          href="https://www.instagram.com/styleplus_perundurai?igsh=MXV1N3RpbTNkeW81bQ=="
+                          href="https://www.instagram.com/onlybabyindia/"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-3 rounded-full bg-rose-100 hover:bg-rose-200 transition-colors"
