@@ -18,7 +18,7 @@ const productSchema = new mongoose.Schema(
           required: true,
         },
         images: {
-          type: [String],
+          type: [String], 
           required: true,
         },
         video: {
@@ -44,11 +44,9 @@ const productSchema = new mongoose.Schema(
     },
     features: {
       type: String,
-      required: true,
     },
     benefits: {
       type: String,
-      required: true,
     },
     bestSellers: {
       type: Boolean,
