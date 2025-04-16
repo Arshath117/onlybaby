@@ -181,7 +181,7 @@ const SingleProduct = () => {
       try {
         const storedUser = localStorage.getItem("user");
         const users = storedUser ? JSON.parse(storedUser) : null;
-        const res = await axios.get(`https://onlybaby.onrender.com/api/review/reviews/${encodeURIComponent(product.name)}`);
+        const res = await axios.get(`http://localhost:5001/api/review/reviews/${encodeURIComponent(product.name)}`);
         console.log(res.data.reviews)
     
         const data = res.data;
@@ -205,7 +205,7 @@ const SingleProduct = () => {
   
     const fetchReviews = async () => {
       try {
-        const baseUrl = "https://onlybaby.onrender.com/api/review";
+        const baseUrl = "http://localhost:5001/api/review";
         const url = ratingFilter
           ? `${baseUrl}/reviews/${encodeURIComponent(product.name)}?ratingFilter=${ratingFilter}`
           : `${baseUrl}/reviews/${encodeURIComponent(product.name)}`;
@@ -389,7 +389,7 @@ const SingleProduct = () => {
 
       console.log("Sending data as JSON:", reviewData);
 
-      const response = await fetch("https://onlybaby.onrender.com/api/review/addreview", {
+      const response = await fetch("http://localhost:5001/api/review/addreview", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -405,7 +405,7 @@ const SingleProduct = () => {
         setNewImages([]);
         setShowReviewForm(false);
         toast.success("Review submitted successfully!");
-        const baseUrl = "https://onlybaby.onrender.com/api/review";
+        const baseUrl = "http://localhost:5001/api/review";
         const fetchUrl = `${baseUrl}/reviews/${encodeURIComponent(product.name)}`;
         
         const fetchResponse = await fetch(fetchUrl, {
@@ -659,11 +659,11 @@ const SingleProduct = () => {
               </span>
             </div>
 
-          <p className="text-gray-600 leading-relaxed">{product.description}</p>
+          <p className="text-gray-600 leading-relaxed">{product?.description}</p>
             <div className="flex gap-2">
               <p className="text-xl font-semibold text-gray-800">Colors:</p>
                 <div className="flex gap-2">
-                {product.colors.map((colorObj, index) => (
+                {product?.colors?.map((colorObj, index) => (
                   <div
                     key={index}
                     className={`w-6 h-6 rounded-full border-2 cursor-pointer ${
@@ -678,11 +678,19 @@ const SingleProduct = () => {
             </div>
 
             {/* Product Information */}
+
             <div className="space-y-6">
-              <p className="font-semibold">What's Included: {product.itemsIncluded}</p>
-              <p className="font-semibold">Features: {product.features}</p>
-              <p className="font-semibold">Benefits: {product.benefits}</p>
+              {product?.itemsIncluded && (
+                <p className="font-semibold">What's Included: {product.itemsIncluded}</p>
+              )}
+              {product?.features && (
+                <p className="font-semibold">Features: {product.features}</p>
+              )}
+              {product?.benefits && (
+                <p className="font-semibold">Benefits: {product.benefits}</p>
+              )}
             </div>
+           
 
             {/* Action Buttons */}
             <div className="flex gap-4">
