@@ -69,7 +69,7 @@ export const ToyStoreProvider = ({ children }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(`http://localhost:5001/api/shop`);
+        const response = await axios.get(`https://onlybaby.co.in/api/shop`);
         setProducts(response.data.products);
         console.log(`successfully fetched in context : ${response.data.products}`)
       } catch (error) {
@@ -89,7 +89,7 @@ export const ToyStoreProvider = ({ children }) => {
       try {
 
         const response = await axios.post(
-          "http://localhost:5001/api/membership/fetch",
+          "https://onlybaby.co.in/api/membership/fetch",
           { userId: user?._id }, 
           {
             headers: { "Content-Type": "application/json" }, 
@@ -122,7 +122,7 @@ export const ToyStoreProvider = ({ children }) => {
         console.log(`Fetching order history for user ID: ${user._id}`);
   
         const response = await axios.get(
-          `http://localhost:5001/api/orders/getOrderHistory?user=${user._id}`
+          `https://onlybaby.co.in/api/orders/getOrderHistory?user=${user._id}`
         );
         console.log(response.data.orders)
         setOrders(response.data.orders || []); 
