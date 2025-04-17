@@ -86,7 +86,7 @@ const Payment = () => {
       };
 
       const response = await axios.post(
-        `https://onlybaby.co.in/api/orders/saveAddress`,
+        `${import.meta.env.VITE_API}/api/orders/saveAddress`,
         orderData
       );
 

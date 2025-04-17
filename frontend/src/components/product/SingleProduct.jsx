@@ -181,7 +181,7 @@ const SingleProduct = () => {
       try {
         const storedUser = localStorage.getItem("user");
         const users = storedUser ? JSON.parse(storedUser) : null;
-        const res = await axios.get(`https://onlybaby.co.in/api/review/reviews/${encodeURIComponent(product.name)}`);
+        const res = await axios.get(`${import.meta.env.VITE_API}/api/review/reviews/${encodeURIComponent(product.name)}`);
         console.log(res.data.reviews)
     
         const data = res.data;
@@ -205,7 +205,7 @@ const SingleProduct = () => {
   
     const fetchReviews = async () => {
       try {
-        const baseUrl = "https://onlybaby.co.in/api/review";
+        const baseUrl = `${import.meta.env.VITE_API}/api/review`;
         const url = ratingFilter
           ? `${baseUrl}/reviews/${encodeURIComponent(product.name)}?ratingFilter=${ratingFilter}`
           : `${baseUrl}/reviews/${encodeURIComponent(product.name)}`;
@@ -389,7 +389,7 @@ const SingleProduct = () => {
 
       console.log("Sending data as JSON:", reviewData);
 
-      const response = await fetch("https://onlybaby.co.in/api/review/addreview", {
+      const response = await fetch(`${import.meta.env.VITE_API}/api/review/addreview`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -405,7 +405,7 @@ const SingleProduct = () => {
         setNewImages([]);
         setShowReviewForm(false);
         toast.success("Review submitted successfully!");
-        const baseUrl = "https://onlybaby.co.in/api/review";
+        const baseUrl = `${import.meta.env.VITE_API}/api/review`;
         const fetchUrl = `${baseUrl}/reviews/${encodeURIComponent(product.name)}`;
         
         const fetchResponse = await fetch(fetchUrl, {

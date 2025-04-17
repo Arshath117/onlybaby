@@ -2,7 +2,7 @@ import { create } from "zustand";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-const api_url = "https://onlybaby.co.in";
+const api_url = `${import.meta.env.VITE_API}`;
 
 export const useAuthStore = create((set) => ({
   user: JSON.parse(localStorage.getItem("user")) || null,
@@ -51,7 +51,7 @@ export const useAuthStore = create((set) => ({
 
     try {
       const response = await axios.post(
-        `https://onlybaby.co.in/api/auth/signup`,
+        `${import.meta.env.VITE_API}/api/auth/signup`,
         {
           name,
           email,
@@ -79,7 +79,7 @@ export const useAuthStore = create((set) => ({
   verifyEmail: async (code) => {
     set({ error: null });
     try {
-      const response = await axios.post(`https://onlybaby.co.in/api/auth/verifyEmail`, { code });
+      const response = await axios.post(`${import.meta.env.VITE_API}/api/auth/verifyEmail`, { code });
       const user = response.data.user;
       localStorage.setItem("user", JSON.stringify(user)); // Store user in localStorage
       set({ user, isAuthenticated: true });
@@ -92,7 +92,7 @@ export const useAuthStore = create((set) => ({
   checkAuth: async () => {
     set({ isCheckingAuth: true, error: null });
     try {
-      const response = await axios.get(`https://onlybaby.co.in/api/auth/check-Auth`);
+      const response = await axios.get(`${import.meta.env.VITE_API}/api/auth/check-Auth`);
       const user = response.data.user;
       localStorage.setItem("user", JSON.stringify(user)); // Store user in localStorage
       set({ user, isAuthenticated: true, isCheckingAuth: false });
@@ -105,7 +105,7 @@ export const useAuthStore = create((set) => ({
   login: async (email, password) => {
     set({ error: null });
     try {
-      const response = await axios.post(`https://onlybaby.co.in/api/auth/login`, {
+      const response = await axios.post(`${import.meta.env.VITE_API}n/api/auth/login`, {
         email,
         password,
       });

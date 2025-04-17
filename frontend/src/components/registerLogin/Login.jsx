@@ -115,7 +115,7 @@ const Login = ({ onClickAccount }) => {
         const userId = loggedInUser._id;
 
         await axios.put(
-          `https://onlybaby.co.in/api/auth/updateUserItems`, // Combined Endpoint
+          `${import.meta.env.VITE_API}/api/auth/updateUserItems`, // Combined Endpoint
           {
             userId,
             cartItems: mergedCartItems,

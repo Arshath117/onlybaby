@@ -76,7 +76,8 @@ const Nav = () => {
 const fetchUserReviews = async () => {
     setLoadingReviews(true);
     try {
-      const response = await fetch(`https://onlybaby.co.in/api/review/fetch/${user.email}`);
+      const response = await fetch(`${import.meta.env.VITE_API}/api/review/fetch/${user.email}`);
+      
       if (!response.ok) {
         throw new Error(`Server error: ${response.statusText}`);
       }
@@ -109,7 +110,7 @@ const fetchUserReviews = async () => {
             )
             : [];
 
-        const response = await fetch("https://onlybaby.co.in/api/review/reviews/update", {
+        const response = await fetch(`${import.meta.env.VITE_API}/api/review/reviews/update`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -141,7 +142,7 @@ const fetchUserReviews = async () => {
     try {
 
       console.log(email)
-      const response = await fetch(`https://onlybaby.co.in/api/review/reviews/${productName}/${email}`, {
+      const response = await fetch(`${import.meta.env.VITE_API}/api/review/reviews/${productName}/${email}`, {
         method: 'DELETE',
       });
   
@@ -212,7 +213,7 @@ useEffect(() => {
 
         const userId = user._id;
 
-        await axios.put(`https://onlybaby.co.in/api/auth/updateUserItems`, {
+        await axios.put(`${import.meta.env.VITE_API}/api/auth/updateUserItems`, {
           userId,
           cartItems: filteredCartItems,
           likedItems: filteredLikedItems,
