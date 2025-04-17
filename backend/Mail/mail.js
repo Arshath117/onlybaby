@@ -10,7 +10,7 @@ export const sendVerificationEmail = async(email,name,verificationToken) => {
         const mailOptions = {
             from : {
                 name : "Only Baby",
-                address:process.env.USER,
+                address:"onlybaby7999@gmail.com",
             },
             to : recipient,
             subject : "Verify your email address",
@@ -32,7 +32,7 @@ export const sendWelcomeEmail = async(email,name) => {
         const mailOptions = {
             from : {
                 name : "Only Baby",
-                address:process.env.USER,
+                address:"onlybaby7999@gmail.com",
             },
             to : email,
             subject : "Welcome to Only Baby",
@@ -54,7 +54,7 @@ export const sendResetPasswordEmail = async(email,resetURL) => {
         const mailOptions ={
             from : {
                 name : "Only Baby",
-                address:process.env.USER,
+                address:"onlybaby7999@gmail.com",
             },
             to : email,
             subject : "Reset your password",
@@ -77,7 +77,7 @@ export const sendResetSuccessEmail = async(email) => {
         const mailOptions = {
             from : {
                 name : "Only Baby",
-                address:process.env.USER,
+                address:"onlybaby7999@gmail.com",
             },
             to : email,
             subject : "Password Reset Successful",
@@ -105,7 +105,7 @@ export const sendOrderSuccessEmail = async (orderDetails) => {
       const mailOptions = {
         from: {
           name: "Only Baby",
-          address: process.env.USER,
+          address: "onlybaby7999@gmail.com",
         },
         to: recipient,
         subject: "Your Order Confirmation",
@@ -135,7 +135,7 @@ export const sendOrderSuccessEmail = async (orderDetails) => {
 
   export const sendOrderToOwnerEmail = async (orderDetails) => {
     try {
-      const ownerEmail = process.env.USER; // Owner's email address
+      const ownerEmail = "onlybaby7999@gmail.com"; // Owner's email address
       const itemsList = orderDetails.orderItems
         .map(
           (item) => `${item.name} (x${item.quantity}): ₹${item.price.toFixed(2)}`
@@ -145,7 +145,7 @@ export const sendOrderSuccessEmail = async (orderDetails) => {
       const mailOptions = {
         from: {
           name: "Only Baby Orders",
-          address: process.env.USER,
+          address: "onlybaby7999@gmail.com",
         },
         to: ownerEmail, // Send the email to the owner
         subject: `New Order Received: ${orderDetails.payment.razorpayOrderId}`,
