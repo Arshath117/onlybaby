@@ -21,7 +21,7 @@ app.use(express.urlencoded({limit: "50mb", extended: true}));
 
 // CORS Configuration for allowing credentials 
 const corsOptions = {
-  origin: [ 'http://onlybaby.co.in', 'https://onlybaby.co.in', 'http://localhost:5173'],
+  origin: [ 'http://onlybaby.co.in', 'https://onlybaby.co.in'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
   credentials: true, // Allow credentials (cookies, authorization headers)
