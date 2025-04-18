@@ -678,18 +678,37 @@ const SingleProduct = () => {
             </div>
 
             {/* Product Information */}
-
             <div className="space-y-6">
-              {product?.itemsIncluded && (
-                <p className="font-semibold">What's Included: {product.itemsIncluded}</p>
-              )}
-              {product?.features && (
-                <p className="font-semibold">Features: {product.features}</p>
-              )}
-              {product?.benefits && (
-                <p className="font-semibold">Benefits: {product.benefits}</p>
-              )}
-            </div>
+                {product?.itemsIncluded && (
+                  <div className="font-semibold">
+                    <p>What's Included:</p>
+                    {product.itemsIncluded.split('\n').map((item, index) => (
+                      <div key={index}> {item}</div>
+                    ))}
+                  </div>
+                )}
+
+                {product?.features && (
+                  <div className="font-semibold">
+                    <p>Features:</p>
+                    {product.features.split('\n').map((feature, index) => (
+                      <div key={index}> {feature}</div>
+                    ))}
+                  </div>
+                )}
+
+                {product?.benefits && (
+                  <div className="font-semibold">
+                    <p>Benefits:</p>
+                    {product.benefits.split('\n').map((benefit, index) => (
+                      <div key={index}> {benefit}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+
+
            
 
             {/* Action Buttons */}
