@@ -105,7 +105,7 @@ export const useAuthStore = create((set) => ({
   login: async (email, password) => {
     set({ error: null });
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API}n/api/auth/login`, {
+      const response = await axios.post(`${import.meta.env.VITE_API}/api/auth/login`, {
         email,
         password,
       });
