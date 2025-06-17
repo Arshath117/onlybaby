@@ -8,11 +8,9 @@ import DiscountBadge from "./DiscountBadge";
 import ActionButton from "./ActionButton";
 
 const Cards = ({ product }) => {
-
-  
   const { addToCart, openSidebar, handleLikeToggle, likedItems, cartItems } =
     useContext(ToyStore);
-  
+
   const isLiked = likedItems.some((item) => item._id === product._id);
 
   const isInCart = cartItems.some((item) => item._id === product._id);
@@ -29,27 +27,33 @@ const Cards = ({ product }) => {
         images: product.colors[0].images,
         ageGroup: product.ageGroup,
         bestSellers: product.bestSellers,
-        benefits: product.benefits, 
+        benefits: product.benefits,
         createdAt: product.createdAt,
         description: product.description,
         features: product.features,
-        discount: product.discount,
+        discount: product.discount, // Ensure discount is passed to cartProduct
         newArrivals: product.newArrivals,
-        quantity: product.quantity, 
+        quantity: product.quantity,
         updatedAt: product.updatedAt,
       };
-  
-      addToCart(cartProduct, 0); 
+
+      addToCart(cartProduct, 0);
       toast.success(`${product.name} added to cart!`);
     }
   };
-  
 
-  const discountPercentage = product.originalPrice
-    ? Math.round(
-        ((product.originalPrice - product.price) / product.originalPrice) * 100
-      )
+  // Calculate discount percentage if originalPrice is available.
+  // Note: The previous discountPercentage calculation might be redundant if product.discount is already a percentage.
+  // I'll assume product.discount is the percentage value (e.g., 10 for 10%).
+  const displayDiscountPercentage = product.discount && typeof product.discount === 'number'
+    ? product.discount
     : null;
+
+  // Calculate discounted price
+  const discountedPrice =
+    product.discount && typeof product.discount === 'number'
+      ? (product.price * (1 - product.discount / 100)).toFixed(2)
+      : null;
 
   return (
     <motion.div
@@ -58,7 +62,8 @@ const Cards = ({ product }) => {
       transition={{ duration: 0.5 }}
       className="relative flex flex-col justify-between max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg p-2 py-3 sm:px-5 md:px-2 rounded-lg shadow-lg shadow-gray-400 hover:shadow-xl transition-shadow duration-300 bg-white dark:bg-gray-50 dark:text-gray-900"
     >
-      <DiscountBadge percentage={discountPercentage} />
+      {/* Ensure DiscountBadge uses the correct percentage */}
+      <DiscountBadge percentage={displayDiscountPercentage} />
 
       <ProductImage
         image={product.colors[0].images[0]}
@@ -76,7 +81,9 @@ const Cards = ({ product }) => {
           whileHover={{ scale: 1.02 }}
           className="block text-xs md:text-sm lg:text-md font-medium tracking-widest uppercase dark:text-violet-600"
         >
-          {product.name.length > 60 ? `${product.name.substring(0, 20)}...` : product.name}
+          {product.name.length > 60
+            ? `${product.name.substring(0, 20)}...`
+            : product.name}
         </motion.span>
       </motion.div>
 
@@ -86,9 +93,27 @@ const Cards = ({ product }) => {
         transition={{ delay: 0.3 }}
         className="flex items-center justify-between font-bold text-sm sm:text-base dark:text-gray-800"
       >
-        <motion.div whileHover={{ scale: 1.05 }} className="text-gray-700">
-          ₹ {product.price}
+        {/* --- Price Display Logic --- */}
+        <motion.div whileHover={{ scale: 1.05 }} className="text-gray-700 flex items-center">
+          {product.discount && typeof product.discount === 'number' && product.discount > 0 ? (
+            <>
+              <span className="line-through text-gray-500 text-sm mr-2">
+                ₹ {product.price.toFixed(2)} {/* Original price */}
+              </span>
+              <span className="text-2xl font-semibold text-gray-800">
+                ₹ {discountedPrice} {/* Discounted price */}
+              </span>
+              <span className="text-red-600 ml-2 text-lg">
+                (-{displayDiscountPercentage}%)
+              </span>
+            </>
+          ) : (
+            <span className="text-2xl font-semibold text-gray-800">
+              ₹ {product.price.toFixed(2)} {/* No discount, display original price */}
+            </span>
+          )}
         </motion.div>
+        {/* --- End Price Display Logic --- */}
 
         <div className="flex gap-2 md:gap-5">
           <ActionButton onClick={() => handleAddToCart(product)}>

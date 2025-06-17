@@ -1088,8 +1088,21 @@ const OpenProduct = (id, selectedColor) => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end space-y-3">
-                      <p className="font-semibold text-lg">
-                        ₹{item?.price * item?.cartQuantity}
+                   <p className="font-semibold text-lg flex items-center">
+                        {item?.discount && typeof item.discount === 'number' && item.discount > 0 ? (
+                          <>
+                            <span className="line-through text-gray-500 text-sm mr-2">
+                              ₹{(item.price * item.cartQuantity).toFixed(2)}
+                            </span>
+                            <span className="text-gray-800">
+                              ₹{((item.price * (1 - item.discount / 100)) * item.cartQuantity).toFixed(2)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-gray-800">
+                            ₹{(item?.price * item?.cartQuantity).toFixed(2)}
+                          </span>
+                        )}
                       </p>
                       <button
                         className="text-sm text-red-500 hover:text-red-600 transition-colors duration-200"
@@ -1265,7 +1278,22 @@ const OpenProduct = (id, selectedColor) => {
                   </div>
                   <div className="flex-1 pr-3 font-thin">
                     <p className="px-2 mb-5">{item.name}</p>
-                    <p className="px-2 text-lg font-semibold">₹{item.price}</p>
+                    <p className="px-2 text-lg font-semibold flex items-center">
+                      {item.discount && typeof item.discount === 'number' && item.discount > 0 ? (
+                        <>
+                          <span className="line-through text-gray-500 text-base mr-2">
+                            ₹{item.price.toFixed(2)}
+                          </span>
+                          <span className="text-gray-800">
+                            ₹{(item.price * (1 - item.discount / 100)).toFixed(2)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-gray-800">
+                          ₹{item.price.toFixed(2)}
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <div className="flex-2 flex flex-col justify-between">
                     <button

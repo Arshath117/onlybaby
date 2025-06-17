@@ -307,11 +307,17 @@ export const ToyStoreProvider = ({ children }) => {
   }
   
 
-  const calculateTotal = () => {
-    return cartItems
-      .reduce((total, item) => total + item.price * item.cartQuantity, 0)
-      .toFixed(2);
-  };
+const calculateTotal = () => {
+  return cartItems
+    .reduce((total, item) => {
+      const effectivePrice =
+        item.discount && typeof item.discount === 'number' && item.discount > 0
+          ? item.price * (1 - item.discount / 100) // Apply discount
+          : item.price; // No discount, use original price
+      return total + effectivePrice * item.cartQuantity;
+    }, 0)
+    .toFixed(2); // Format the final total to two decimal places
+};
 
   // User Authentication
   const Login = () => {

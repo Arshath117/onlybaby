@@ -11,15 +11,28 @@ const PaymentConfirmation = () => {
   const { state } = useLocation();
   const { user } = useAuthStore.getState();
   const navigate = useNavigate();
-  const { orders, memberShip, shippingPrice, singleProduct, removeCart } = useContext(ToyStore);
+  const { memberShip, shippingPrice: contextShippingPrice, singleProduct, removeCart } = useContext(ToyStore);
   const [PaymentDone, setPaymentDone] = useState(false);
 
-  const { orderItems = [], shippingAddress = {}, itemsPrice } = state?.orderData || {};
+  const { orderItems = [], shippingAddress = {}, itemsPrice: initialItemsPriceFromState } = state?.orderData || {};
   console.log(`order items : ${orderItems.map((item) => item._id)}`);
   const { firstName, lastName, email, phone, streetAddress, city, state: region, country } = shippingAddress;
 
-  const subtotal = itemsPrice + shippingPrice;
-  const discount = memberShip ? 0.1 * subtotal : 0;
+  const calculateEffectiveItemsPrice = () => {
+    return orderItems.reduce((total, item) => {
+      const itemPriceAfterDiscount = item.discount && typeof item.discount === 'number' && item.discount > 0
+        ? item.price * (1 - item.discount / 100)
+        : item.price;
+      return total + (itemPriceAfterDiscount * item.quantity);
+    }, 0);
+  };
+
+  const actualItemsPrice = calculateEffectiveItemsPrice();
+  const shippingPrice = state?.orderData?.shippingPrice !== undefined ? state.orderData.shippingPrice : contextShippingPrice;
+  const memberShipStatus = memberShip; 
+
+  const subtotal = actualItemsPrice + shippingPrice;
+  const discount = memberShipStatus ? 0.1 * subtotal : 0;
   const grandTotal = subtotal - discount;
 
   const containerVariants = {
@@ -32,20 +45,21 @@ const PaymentConfirmation = () => {
     visible: { opacity: 1, x: 0, transition: { duration: 0.4 } },
   };
 
-    const handlePayment = async () => {
+  const handlePayment = async () => {
     try {
       const paymentResponse = await axios.post(`${import.meta.env.VITE_API}/api/orders/initiate`, {
-        itemsPrice, 
+        itemsPrice: actualItemsPrice, 
         shippingPrice, 
+        totalPrice: grandTotal,
         addressId: shippingAddress,
         user: user._id, 
         orderItems,
       });
-  
+ 
       const razorpayOrder = paymentResponse.data;
-  
+ 
       console.log("Backend Order ID:", razorpayOrder.razorpayOrderId);
-  
+ 
       const options = {
         key: "rzp_live_PynFXjq11Tlim5", 
         amount: razorpayOrder.amount,
@@ -56,27 +70,27 @@ const PaymentConfirmation = () => {
             toast.error("Payment failed! No response received.");
             return;
           }
-  
+ 
           const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response || {};
           if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
             toast.error("Invalid Razorpay response!");
             return;
           }
-  
+ 
           console.log("Razorpay Response:", response);
-  
+ 
           try {
             const res = await axios.post(`${import.meta.env.VITE_API}/api/orders/verify`, {
               razorpayOrderId: razorpay_order_id,
               razorpayPaymentId: razorpay_payment_id,
               razorpaySignature: razorpay_signature,
             });
-  
-            if (res.data.success) {  
-              setPaymentDone(true);  
+ 
+            if (res.data.success) { 
+              setPaymentDone(true); 
               toast.success("Payment successful! Order placed.");
               navigate("/");
-              if (!singleProduct) {
+              if (!singleProduct) { 
                 removeCart();
               }
             } else {
@@ -96,7 +110,7 @@ const PaymentConfirmation = () => {
         },
         theme: { color: "#F37254" },
       };
-  
+ 
       const rzp1 = new window.Razorpay(options);
       rzp1.open();
     } catch (error) {
@@ -155,7 +169,6 @@ const PaymentConfirmation = () => {
               </thead>
               <tbody>
                 {orderItems.map((item) => (
-                  
                   <tr key={item._id} className="border-b border-gray-100">
                     <td className="py-4 px-2">
                       <div className="flex items-center">
@@ -167,8 +180,29 @@ const PaymentConfirmation = () => {
                       </div>
                     </td>
                     <td className="text-center py-4 px-2 text-gray-700">{item.quantity}</td>
-                    <td className="text-right py-4 px-2 text-gray-700">₹{item.price}</td>
-                    <td className="text-right py-4 px-2 text-gray-700">₹{item.price * item.quantity}</td>
+                    <td className="text-right py-4 px-2 text-gray-700">
+                      {item.discount && typeof item.discount === 'number' && item.discount > 0 ? (
+                        <div className="flex flex-col items-end">
+                          <span className="line-through text-gray-500 text-sm">
+                            ₹{item.price.toFixed(2)}
+                          </span>
+                          <span className="font-semibold">
+                            ₹{(item.price * (1 - item.discount / 100)).toFixed(2)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span>₹{item.price.toFixed(2)}</span>
+                      )}
+                    </td>
+                    <td className="text-right py-4 px-2 text-gray-700">
+                      {item.discount && typeof item.discount === 'number' && item.discount > 0 ? (
+                        <span>
+                          ₹{((item.price * (1 - item.discount / 100)) * item.quantity).toFixed(2)}
+                        </span>
+                      ) : (
+                        <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -179,13 +213,13 @@ const PaymentConfirmation = () => {
               <div className="space-y-3">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>₹{itemsPrice}</span>
+                  <span>₹{actualItemsPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span>{shippingPrice === 0 ? "Free" : `₹${shippingPrice}`}</span>
+                  <span>{shippingPrice === 0 ? "Free" : `₹${shippingPrice.toFixed(2)}`}</span>
                 </div>
-                {memberShip && (
+                {memberShipStatus && (
                   <div className="flex justify-between text-green-600">
                     <span>Membership Discount</span>
                     <span>- ₹{discount.toFixed(2)}</span>
@@ -200,55 +234,52 @@ const PaymentConfirmation = () => {
           </div>
         </div>
         <div className="px-8 py-6 bg-gray-50">
-        <div className="mt-2">
-              <button
-                type="submit"
-                disabled={PaymentDone}
-                className={`w-full flex justify-center items-center px-1 py-3 rounded-md text-white text-lg font-medium transition-colors duration-200 ${
-                  PaymentDone
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gray-800 hover:bg-gray-700"
-                }`}
-              >
-                {PaymentDone ? (
-                  <div className="flex items-center space-x-2">
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Processing Payment...</span>
-                  </div>
-                ) : (
-                  <button
-                  onClick={()=>{
-                    setPaymentDone(true);
-                    handlePayment();
-                  }}
-                  className="w-full bg-gray-800 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
+          <div className="mt-2">
+            <button
+              type="button" 
+              disabled={PaymentDone}
+              className={`w-full flex justify-center items-center px-1 py-3 rounded-md text-white text-lg font-medium transition-colors duration-200 ${
+                PaymentDone
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gray-800 hover:bg-gray-700"
+              }`}
+              onClick={() => { 
+                setPaymentDone(true);
+                handlePayment();
+              }}
+            >
+              {PaymentDone ? (
+                <div className="flex items-center space-x-2">
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span>Processing Payment...</span>
+                </div>
+              ) : (
+                <> 
                   <span>Proceed to Payment</span>
                   <span>₹{grandTotal.toFixed(2)}</span>
-                </button>
-                )}
-              </button>
-            </div>
-         
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

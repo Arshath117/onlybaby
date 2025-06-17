@@ -643,32 +643,44 @@ const SingleProduct = () => {
               <h2 className="text-3xl font-bold text-gray-800">{product.name}</h2>
             </div>
 
-            <div className="text-2xl font-semibold text-gray-800">
-            ₹ {product.price}
-              {product.discount && (
-                <span className="text-red-600 ml-2 text-lg">
-                  (-{product.discount}%)
-                </span>
+           <div className="text-2xl font-semibold text-gray-800">
+              {product.discount ? (
+                <>
+                  <span className="line-through text-gray-500 text-lg mr-2">
+                    ₹ {product.price}
+                  </span>
+                  <span>
+                    ₹ {(product.price * (1 - product.discount / 100)).toFixed(2)}
+                  </span>
+                  <span className="text-red-600 ml-2 text-lg">
+                    (-{product.discount}%)
+                  </span>
+                </>
+              ) : (
+                <>
+                  ₹ {product.price}
+                </>
               )}
             </div>
 
-            <div className="flex items-center gap-4">
-              <span className="text-gray-700">Age Group:</span>
-              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+         <div className="flex items-center gap-4 mb-4"> 
+              <span className="text-gray-700 font-medium">Age Group:</span> 
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold"> 
                 {product.ageGroup}
               </span>
             </div>
 
-          <p className="text-gray-600 leading-relaxed">{product?.description}</p>
-            <div className="flex gap-2">
-              <p className="text-xl font-semibold text-gray-800">Colors:</p>
-                <div className="flex gap-2">
+            <p className="text-gray-700 leading-relaxed mb-6">{product?.description}</p> 
+
+            <div className="flex items-center gap-4 mb-6"> 
+              <p className="text-lg font-semibold text-gray-800">Colors:</p>
+              <div className="flex gap-2">
                 {product?.colors?.map((colorObj, index) => (
                   <div
                     key={index}
-                    className={`w-6 h-6 rounded-full border-2 cursor-pointer ${
-                      selectedColor === colorObj.color ? "border-black" : "border-white"
-                    }`}
+                    className={`w-7 h-7 rounded-full border-2 transition-all duration-200 ease-in-out cursor-pointer shadow-sm
+                      ${selectedColor === colorObj.color ? "border-blue-500 ring-2 ring-blue-300" : "border-gray-300 hover:border-gray-400"}
+                    `} 
                     style={{ backgroundColor: colorObj.color }}
                     title={colorObj.color}
                     onClick={() => setSelectedColor(colorObj.color)}
@@ -677,38 +689,44 @@ const SingleProduct = () => {
               </div>
             </div>
 
-            {/* Product Information */}
-            <div className="space-y-6">
-                {product?.itemsIncluded && (
-                  <div className="font-semibold">
-                    <p>What's Included:</p>
-                    {product.itemsIncluded.split('\n').map((item, index) => (
-                      <div key={index}> {item}</div>
-                    ))}
-                  </div>
-                )}
+           {/* Product Information Sections */}
+            <div className="space-y-6 mt-6 border-t pt-6 border-gray-200">
+              {product?.itemsIncluded && product.itemsIncluded.trim() !== '' && ( // Check if content exists and is not just whitespace
+                <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                  <p className="text-lg font-semibold text-gray-800 mb-2">What's Included:</p>
+                  <ul className="list-disc list-inside text-gray-700 space-y-1">
+                    {product.itemsIncluded.split('\n').map((item, index) => {
+                      const trimmedItem = item.trim();
+                      return trimmedItem !== '' ? <li key={index}> {trimmedItem}</li> : null; // Only render if not empty
+                    })}
+                  </ul>
+                </div>
+              )}
 
-                {product?.features && (
-                  <div className="font-semibold">
-                    <p>Features:</p>
-                    {product.features.split('\n').map((feature, index) => (
-                      <div key={index}> {feature}</div>
-                    ))}
-                  </div>
-                )}
+              {product?.features && product.features.trim() !== '' && ( // Check if content exists and is not just whitespace
+                <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                  <p className="text-lg font-semibold text-gray-800 mb-2">Features:</p>
+                  <ul className="list-disc list-inside text-gray-700 space-y-1">
+                    {product.features.split('\n').map((feature, index) => {
+                      const trimmedFeature = feature.trim();
+                      return trimmedFeature !== '' ? <li key={index}> {trimmedFeature}</li> : null; // Only render if not empty
+                    })}
+                  </ul>
+                </div>
+              )}
 
-                {product?.benefits && (
-                  <div className="font-semibold">
-                    <p>Benefits:</p>
-                    {product.benefits.split('\n').map((benefit, index) => (
-                      <div key={index}> {benefit}</div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-
-
+              {product?.benefits && product.benefits.trim() !== '' && ( // Check if content exists and is not just whitespace
+                <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                  <p className="text-lg font-semibold text-gray-800 mb-2">Benefits:</p>
+                  <ul className="list-disc list-inside text-gray-700 space-y-1">
+                    {product.benefits.split('\n').map((benefit, index) => {
+                      const trimmedBenefit = benefit.trim();
+                      return trimmedBenefit !== '' ? <li key={index}> {trimmedBenefit}</li> : null; // Only render if not empty
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
            
 
             {/* Action Buttons */}

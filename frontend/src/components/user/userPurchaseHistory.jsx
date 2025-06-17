@@ -5,15 +5,14 @@ import ErrorState from "./ErrorState";
 
 const UserPurchaseHistory = () => {
     const { orders, loading, error, openSidebar, products } = useContext(ToyStore);
-    const [selectedOrder, setSelectedOrder] = React.useState(null); // Add selectedOrder state
+    const [selectedOrder, setSelectedOrder] = React.useState(null);
 
     const HandleSideBar = (name) => {
         try {
-            const viewProduct = products.find((e)=> e.name === name)
-            openSidebar(viewProduct)
-            
+            const viewProduct = products.find((e) => e.name === name);
+            openSidebar(viewProduct);
         } catch (error) {
-            console.log(`Error opening Product ${error}`)
+            console.log(`Error opening Product ${error}`);
         }
     };
 
@@ -22,10 +21,10 @@ const UserPurchaseHistory = () => {
 
     // Helper function to check if 7 days have passed
     const isDelivered = (createdAt) => {
-        const orderDate = new Date(createdAt); // Assuming createdAt is the order date
+        const orderDate = new Date(createdAt);
         const currentDate = new Date();
         const diffTime = Math.abs(currentDate - orderDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Convert time difference to days
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays > 7;
     };
 
@@ -63,7 +62,7 @@ const UserPurchaseHistory = () => {
                                             {isDelivered(order.createdAt)
                                                 ? "Delivered"
                                                 : order.isDelivered
-                                                ? "Dispatched delivered within 4-5 business days"
+                                                ? "Dispatched, delivered within 4-5 business days"
                                                 : "Pending"
                                             }
                                         </span>
@@ -94,16 +93,31 @@ const UserPurchaseHistory = () => {
                                     {order.orderItems && order.orderItems.length > 0 ? (
                                         <ul className="divide-y divide-gray-100">
                                             {order.orderItems.map(item => (
-                                                <li key={item._id} className="py-2 flex justify-between items-center hover:bg-gray-50 transition-colors duration-200 px-2 rounded-lg"
-                                                onClick ={ () => { HandleSideBar(item.name); console.log(item)}}
+                                                <li
+                                                    key={item._id}
+                                                    className="py-2 flex justify-between items-center hover:bg-gray-50 transition-colors duration-200 px-2 rounded-lg"
+                                                    onClick={() => { HandleSideBar(item.name); console.log(item); }}
                                                 >
-                                                   <div className="space-x-4">
-                                                   <span className="text-gray-600 font-semibold text-xl" >{item.name}</span>
-                                                   <span className="text-gray-600">Color : {item.color}</span>
-                                                   </div>
-                                                    <div className="text-sm">
+                                                    <div className="space-x-4">
+                                                        <span className="text-gray-600 font-semibold text-xl">{item.name}</span>
+                                                        <span className="text-gray-600">Color : {item.color}</span>
+                                                    </div>
+                                                    <div className="text-sm flex items-center space-x-1"> {/* Flex for price alignment */}
                                                         <span className="text-gray-500">{item.quantity} × </span>
-                                                        <span className="font-medium text-purple-600">₹{item.price}</span>
+                                                        {item.discount && typeof item.discount === 'number' && item.discount > 0 ? (
+                                                            <>
+                                                                <span className="line-through text-gray-400 text-xs">
+                                                                    ₹{item.price.toFixed(2)}
+                                                                </span>
+                                                                <span className="font-medium text-purple-600">
+                                                                    ₹{(item.price * (1 - item.discount / 100)).toFixed(2)}
+                                                                </span>
+                                                            </>
+                                                        ) : (
+                                                            <span className="font-medium text-purple-600">
+                                                                ₹{item.price.toFixed(2)}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </li>
                                             ))}
