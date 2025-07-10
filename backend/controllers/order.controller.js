@@ -102,91 +102,81 @@ export const saveOrUpdateDraftOrder = async (req, res) => {
   }
 };
 
+
 export const initiatePayment = async (req, res) => {
- // check if user has previous order history if yes make
   try {
-    const { user, itemsPrice, orderItems, addressId } = req.body;
-    console.log(user)
-    console.log(`price: ${itemsPrice}`)
-    // Validate required fields
-    if (!user || !itemsPrice || !orderItems || !addressId) {
+    const { user, itemsPrice, shippingPrice, orderItems, addressId } = req.body; 
+    console.log("Initial Price:", itemsPrice);
+    // Validate inputs
+    if (!user || !itemsPrice || !orderItems || !addressId || typeof shippingPrice === 'undefined') {
       return res.status(400).json({
         success: false,
         message:
-          "Missing required fields: user, itemsPrice, orderItems, addressId",
-      });
-    }
-    let member = await Member.findOne({ userId : user });
-  
-    let userOrder = await Order.findOne({ user });
-    const hasPurchasedBefore = userOrder.orders.length > 0;
-    console.log(hasPurchasedBefore)
-    if (!userOrder) {
-      // Create a new order document for the user if it doesn't exist
-      userOrder = await Order.create({
-        user,
-        orders: [],
+          "Missing required fields: user, itemsPrice, shippingPrice, orderItems, or addressId.",
       });
     }
 
-    // Check if orderItems is an array
+    let member = await Member.findOne({ userId : user }); 
+    let userOrder = await Order.findOne({ user }); 
+    
+    if (!userOrder) {
+      userOrder = await Order.create({ user, orders: [] });
+    }
+
     if (!Array.isArray(orderItems) || orderItems.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Invalid orderItems format. It must be a non-empty array.",
+        message: "Invalid orderItems format. Must be a non-empty array.",
       });
     }
 
-    const draftOrder = userOrder.orders.find((order) => order.isDraft);
-    const shippingFee = draftOrder?.shippingFee || 0; // Use stored value
-
-    const totalPrice = itemsPrice + shippingFee; // Ensure this matches frontend UI
-
-    let finalTotal = totalPrice;
-    console.log(finalTotal)
+    // Calculate total
+    const baseTotal = itemsPrice + shippingPrice; 
+    let finalTotal = baseTotal; 
+    console.log("final Total:", finalTotal);
     if(member && member.paymentStatus){
-     finalTotal = totalPrice - (0.1 * totalPrice)
-      console.log(`altered ${finalTotal}`)
+      finalTotal = baseTotal - (0.1 * baseTotal); // Apply discount
     }
-
-    // Initialize Razorpay
+    console.log("Final Total after discount:", finalTotal);
+    // Init Razorpay
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
+      key_id: process.env.RAZORPAY_KEY_ID, 
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
-    // Create Razorpay order
+    // Order options
     const options = {
-      amount: finalTotal * 100, // Amount in paise
-      currency: "INR",
-      receipt: `receipt_${Date.now()}`,
+      amount: Math.round(finalTotal * 100), // Amount paisa
+      currency: "INR", 
+      receipt: `receipt_${Date.now()}`, 
     };
 
-    const razorpayOrder = await razorpay.orders.create(options);
+    let razorpayOrder; 
 
-    if (!razorpayOrder || !razorpayOrder.id) {
-      console.error("Failed to create Razorpay order.");
-      return res.status(500).json({
+    // Create order
+    try {
+      razorpayOrder = await razorpay.orders.create(options);
+      console.log("Razorpay order created:", razorpayOrder);
+    } catch (err) {
+      console.error("Razorpay order creation failed:", err?.message, err?.error);
+      return res.status(400).json({
         success: false,
-        message: "Unable to create payment order. Please try again later.",
+        message: "Razorpay error: " + err?.message,
+        details: err?.error,
       });
     }
 
-    // Find the existing draft  order
     const draftOrderIndex = userOrder.orders.findIndex(
       (order) => order.isDraft
     );
 
     if (draftOrderIndex !== -1) {
-      // Update the existing draft order with payment details
       userOrder.orders[draftOrderIndex].payment = {
         razorpayOrderId: razorpayOrder.id,
         paymentStatus: "pending",
       };
-
-      userOrder.orders[draftOrderIndex].totalPrice = totalPrice; // Update price if needed
+      userOrder.orders[draftOrderIndex].totalPrice = finalTotal; 
     } else {
-      // No draft order found, create a new one
       const newOrder = {
         orderItems: orderItems.map((item) => ({
           _id: item._id,
@@ -209,24 +199,25 @@ export const initiatePayment = async (req, res) => {
           phone: addressId.phone,
           email: addressId.email,
         },
-        totalPrice,
-        isDraft: true,
+        totalPrice: finalTotal, 
+        isDraft: true, 
         payment: {
           razorpayOrderId: razorpayOrder.id,
           paymentStatus: "pending",
         },
       };
-
       userOrder.orders.push(newOrder);
     }
 
+    // Save order
     await userOrder.save();
 
+    // Send response
     res.status(200).json({
       success: true,
-      razorpayOrderId: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
+      razorpayOrderId: razorpayOrder.id, 
+      amount: razorpayOrder.amount, 
+      currency: razorpayOrder.currency, 
     });
   } catch (error) {
     console.error("Error in initiatePayment:", error.message, error.stack);
