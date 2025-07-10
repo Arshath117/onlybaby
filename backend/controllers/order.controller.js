@@ -105,8 +105,8 @@ export const saveOrUpdateDraftOrder = async (req, res) => {
 
 export const initiatePayment = async (req, res) => {
   try {
-    const { user, itemsPrice, shippingPrice, orderItems, addressId } = req.body; 
-    console.log("Initial Price:", itemsPrice);
+    const { user, itemsPrice, shippingPrice, orderItems, addressId } = req.body; // Add shippingPrice
+
     // Validate inputs
     if (!user || !itemsPrice || !orderItems || !addressId || typeof shippingPrice === 'undefined') {
       return res.status(400).json({
@@ -116,9 +116,9 @@ export const initiatePayment = async (req, res) => {
       });
     }
 
-    let member = await Member.findOne({ userId : user }); 
-    let userOrder = await Order.findOne({ user }); 
-    
+    let member = await Member.findOne({ userId : user });
+    let userOrder = await Order.findOne({ user });
+
     if (!userOrder) {
       userOrder = await Order.create({ user, orders: [] });
     }
@@ -130,40 +130,51 @@ export const initiatePayment = async (req, res) => {
       });
     }
 
-    // Calculate total
-    const baseTotal = itemsPrice + shippingPrice; 
-    let finalTotal = baseTotal; 
-    console.log("final Total:", finalTotal);
+    const draftOrder = userOrder.orders.find((order) => order.isDraft);
+    const storedShippingFee = draftOrder?.shippingFee || 0; // Use stored value
+    
+    // Use received shippingPrice from frontend, not stored, for current calculation
+    const baseTotal = itemsPrice + shippingPrice; // Calculate base
+
+    let finalTotal = baseTotal;
+
     if(member && member.paymentStatus){
       finalTotal = baseTotal - (0.1 * baseTotal); // Apply discount
     }
-    console.log("Final Total after discount:", finalTotal);
+
     // Init Razorpay
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID, 
+      key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
     // Order options
     const options = {
       amount: Math.round(finalTotal * 100), // Amount paisa
-      currency: "INR", 
-      receipt: `receipt_${Date.now()}`, 
+      currency: "INR",
+      receipt: `r${Date.now().toString().slice(-8)}_${user.slice(-8)}`, // Shorten receipt
     };
 
-    let razorpayOrder; 
+    let razorpayOrder;
 
-    // Create order
     try {
       razorpayOrder = await razorpay.orders.create(options);
-      console.log("Razorpay order created:", razorpayOrder);
     } catch (err) {
       console.error("Razorpay order creation failed:", err?.message, err?.error);
-      return res.status(400).json({
+      return res.status(err?.statusCode || 400).json({ // Handle Razorpay's specific status codes
         success: false,
-        message: "Razorpay error: " + err?.message,
+        message: "Razorpay order creation failed: " + err?.message,
         details: err?.error,
       });
+    }
+
+    // Moved check inside try-catch to ensure razorpayOrder exists
+    if (!razorpayOrder || !razorpayOrder.id) {
+        console.error("Failed to create Razorpay order: Order object invalid.");
+        return res.status(500).json({
+          success: false,
+          message: "Unable to create payment order. Invalid Razorpay order response.",
+        });
     }
 
     const draftOrderIndex = userOrder.orders.findIndex(
@@ -175,7 +186,7 @@ export const initiatePayment = async (req, res) => {
         razorpayOrderId: razorpayOrder.id,
         paymentStatus: "pending",
       };
-      userOrder.orders[draftOrderIndex].totalPrice = finalTotal; 
+      userOrder.orders[draftOrderIndex].totalPrice = finalTotal; // Update price
     } else {
       const newOrder = {
         orderItems: orderItems.map((item) => ({
@@ -199,13 +210,14 @@ export const initiatePayment = async (req, res) => {
           phone: addressId.phone,
           email: addressId.email,
         },
-        totalPrice: finalTotal, 
-        isDraft: true, 
+        totalPrice: finalTotal, // Use final total
+        isDraft: true,
         payment: {
           razorpayOrderId: razorpayOrder.id,
           paymentStatus: "pending",
         },
       };
+
       userOrder.orders.push(newOrder);
     }
 
@@ -215,9 +227,9 @@ export const initiatePayment = async (req, res) => {
     // Send response
     res.status(200).json({
       success: true,
-      razorpayOrderId: razorpayOrder.id, 
-      amount: razorpayOrder.amount, 
-      currency: razorpayOrder.currency, 
+      razorpayOrderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
     });
   } catch (error) {
     console.error("Error in initiatePayment:", error.message, error.stack);

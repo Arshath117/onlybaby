@@ -46,78 +46,81 @@ const PaymentConfirmation = () => {
   };
 
   const handlePayment = async () => {
-    try {
-      const paymentResponse = await axios.post(`${import.meta.env.VITE_API}/api/orders/initiate`, {
-        itemsPrice: actualItemsPrice, 
-        shippingPrice, 
-        totalPrice: grandTotal,
-        addressId: shippingAddress,
-        user: user._id, 
-        orderItems,
-      });
- 
-      const razorpayOrder = paymentResponse.data;
- 
-      console.log("Backend Order ID:", razorpayOrder.razorpayOrderId);
- 
-      const options = {
-        key: "rzp_live_PynFXjq11Tlim5", 
-        amount: razorpayOrder.amount,
-        currency: "INR",
-        order_id: razorpayOrder.razorpayOrderId, 
-        handler: async (response) => {
-          if (!response) {
-            toast.error("Payment failed! No response received.");
-            return;
-          }
- 
-          const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response || {};
-          if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-            toast.error("Invalid Razorpay response!");
-            return;
-          }
- 
-          console.log("Razorpay Response:", response);
- 
-          try {
-            const res = await axios.post(`${import.meta.env.VITE_API}/api/orders/verify`, {
-              razorpayOrderId: razorpay_order_id,
-              razorpayPaymentId: razorpay_payment_id,
-              razorpaySignature: razorpay_signature,
-            });
- 
-            if (res.data.success) { 
-              setPaymentDone(true); 
-              toast.success("Payment successful! Order placed.");
-              navigate("/");
-              if (!singleProduct) { 
-                removeCart();
-              }
-            } else {
-              setPaymentDone(false);
-              toast.error("Payment failed! Please try again.");
+  try {
+    // Initiate order
+    const paymentResponse = await axios.post(`${import.meta.env.VITE_API}/api/orders/initiate`, {
+      itemsPrice: actualItemsPrice, 
+      shippingPrice, 
+      totalPrice: grandTotal, // Frontend total
+      addressId: shippingAddress,
+      user: user._id, 
+      orderItems,
+    });
+
+    const razorpayOrder = paymentResponse.data;
+
+    console.log("Backend Order ID:", razorpayOrder.razorpayOrderId);
+
+    // Razorpay options
+    const options = {
+      key: "rzp_live_LGA3iThZiQagH7", 
+      amount: razorpayOrder.amount, // Backend amount
+      currency: "INR",
+      order_id: razorpayOrder.razorpayOrderId, 
+      handler: async (response) => {
+        if (!response) {
+          toast.error("Payment failed! No response received.");
+          return;
+        }
+
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response || {};
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+          toast.error("Invalid Razorpay response!");
+          return;
+        }
+
+        console.log("Razorpay Response:", response);
+
+        try {
+          // Verify payment
+          const res = await axios.post(`${import.meta.env.VITE_API}/api/orders/verify`, {
+            razorpayOrderId: razorpay_order_id,
+            razorpayPaymentId: razorpay_payment_id,
+            razorpaySignature: razorpay_signature,
+          });
+
+          if (res.data.success) { 
+            setPaymentDone(true); 
+            toast.success("Payment successful! Order placed.");
+            navigate("/");
+            if (!singleProduct) { 
+              removeCart();
             }
-          } catch (error) {
+          } else {
             setPaymentDone(false);
-            toast.error("Payment verification failed! Please try again.");
-            console.error("Verification error:", error.response?.data || error);
+            toast.error("Payment failed! Please try again.");
           }
-        },
-        prefill: { 
-          name: `${user.firstName} ${user.lastName}`, 
-          email: user.email, 
-          contact: user.phone 
-        },
-        theme: { color: "#F37254" },
-      };
- 
-      const rzp1 = new window.Razorpay(options);
-      rzp1.open();
-    } catch (error) {
-      toast.error("Error initiating payment!");
-      console.error("Error during payment process:", error);
-    }
-  };
+        } catch (error) {
+          setPaymentDone(false);
+          toast.error("Payment verification failed! Please try again.");
+          console.error("Verification error:", error.response?.data || error);
+        }
+      },
+      prefill: { 
+        name: `${user.firstName} ${user.lastName}`, 
+        email: user.email, 
+        contact: user.phone 
+      },
+      theme: { color: "#F37254" },
+    };
+
+    const rzp1 = new window.Razorpay(options);
+    rzp1.open(); // Open checkout
+  } catch (error) {
+    toast.error("Error initiating payment!");
+    console.error("Error during payment process:", error);
+  }
+};
 
   const handleExit = () => {
     toast.success("Order cancelled successfully");
